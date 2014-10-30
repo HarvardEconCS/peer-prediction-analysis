@@ -21,30 +21,43 @@ import be.ac.ulg.montefiore.run.jahmm.Hmm;
 
 public class PredLkAnalysis {
 
+	static String rootDir = "/Users/alicexigao/Dropbox/peer-prediction/data/"
+			+ LogReader.treatment + "/";
+	
 	static int numFolds = 10;
 	static int numRoundsCV = 10;
 	static double randomLogLk; 
 	static Map<String, List<Double>> avgLogLks;
-	
+
 	public static void main(String[] args) throws Exception {
-				
+			
+		String homeDir = System.getProperty("user.home");
+		String separator = System.getProperty("file.separator");
+		rootDir = homeDir + separator + "ppdata" + separator + LogReader.treatment + separator;
+		
 		LogReader.parseTextfile();
 		LogReader.printTreatmentInfo();
-		
-		printCurrentDateTime();
+
+		if (args.length < 1) {
+			System.err.println("Please provide a model");
+			System.exit(0);
+		}
+
+		String model = args[0];
 
 		avgLogLks = new HashMap<String, List<Double>>();
 		randomLogLk = getLogLkRandomModel();
-
+		
+		printCurrentDateTime();
+		getPredictiveLogLk(model);
+		printCurrentDateTime();
+		
 //		getPredictiveLogLk("HMM");
 //		printCurrentDateTime();
 
 //		getPredictiveLogLk("s1");
 //		printCurrentDateTime();
 				
-		getPredictiveLogLk("s1-1");
-		printCurrentDateTime();
-		
 //		getPredictiveLogLk("s2");
 //		printCurrentDateTime();
 		
@@ -63,7 +76,7 @@ public class PredLkAnalysis {
 		Date date = new Date();
 		SimpleDateFormat ft = new SimpleDateFormat("MM.dd.HH.mm.ss");
 		FileOutputStream f = new FileOutputStream(String.format(
-				"%slog-%s-%s.txt", LogReader.rootDir, model, ft.format(date)));
+				"%slog-%s-%s.txt", PredLkAnalysis.rootDir, model, ft.format(date)));
 		TeePrintStream tee = new TeePrintStream(f, System.out);
 		System.setOut(tee);
 	
@@ -254,7 +267,7 @@ public class PredLkAnalysis {
 	public static void graphPredictiveLogLk() throws IOException {
 	
 		System.out.println("Graphing distributions of log likelihoods");
-		BufferedWriter writer = new BufferedWriter(new FileWriter(LogReader.rootDir
+		BufferedWriter writer = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ "predictiveLogLk.m"));
 	
 		int numModels = avgLogLks.keySet().size();

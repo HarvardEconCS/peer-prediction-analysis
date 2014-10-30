@@ -2,7 +2,6 @@ package edu.harvard.econcs.peerprediction.analysis;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -35,28 +34,25 @@ public class LogReader {
 //	 static String treatment = "prior2-symmlowpay";
 //	 static String treatment = "prior2-constant";
 
-	static final String rootDir = "/Users/alicexigao/Dropbox/peer-prediction/data/"
-			+ treatment + "/";
-
 	static Experiment expSet;
 
-	public static void main(String[] args) throws Exception {
-
-		File dir = new File(rootDir);
-		dir.mkdirs();
-
-		// Parsing game log and exit survey, and print info
-		parseTextfile();
-//		parseDB();
-		// writePlayerCommentsToFile();
-		printTreatmentInfo();
-
-		// Statistics of raw data
-//		writeRawDataToFile();
-//		 graphRawData();
-		 calcAvgBonus();
-
-	}
+//	public static void main(String[] args) throws Exception {
+//
+//		File dir = new File(rootDir);
+//		dir.mkdirs();
+//
+//		// Parsing game log and exit survey, and print info
+//		parseTextfile();
+////		parseDB();
+//		// writePlayerCommentsToFile();
+//		printTreatmentInfo();
+//
+//		// Statistics of raw data
+////		writeRawDataToFile();
+////		 graphRawData();
+//		 calcAvgBonus();
+//
+//	}
 
 	public static void parseDB() {
 		System.out.println("Parsing mysql database");
@@ -187,7 +183,7 @@ public class LogReader {
 	}
 
 	public static void parseTextfile() throws IOException {
-		BufferedReader reader = new BufferedReader(new FileReader(rootDir
+		BufferedReader reader = new BufferedReader(new FileReader(PredLkAnalysis.rootDir
 				+ "rawData.txt"));
 
 		expSet = new Experiment();
@@ -298,7 +294,7 @@ public class LogReader {
 	public static void writeRawDataToFile() throws IOException {
 		System.out.println("Write raw data to file");
 
-		BufferedWriter writer = new BufferedWriter(new FileWriter(rootDir
+		BufferedWriter writer = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ "rawData.txt"));
 
 		writer.write(String.format(
@@ -612,7 +608,7 @@ public class LogReader {
 	private static void writePlayerCommentsToFile() throws IOException {
 		System.out.println("Write player comments to file");
 
-		BufferedWriter writer = new BufferedWriter(new FileWriter(rootDir
+		BufferedWriter writer = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ "playerComments.csv"));
 		writer.write("gameId,hitId,actions,bonus,strategy,otherStrategy,reason,change,comments\n");
 
@@ -730,7 +726,7 @@ public class LogReader {
 		}
 	
 		// write to rawData.m
-		BufferedWriter writerMatlab = new BufferedWriter(new FileWriter(rootDir
+		BufferedWriter writerMatlab = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ "rawData.m"));
 	
 		writerMatlab.write("MMsignalsMMreports = "

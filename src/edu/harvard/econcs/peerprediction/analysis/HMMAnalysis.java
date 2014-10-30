@@ -104,7 +104,7 @@ public class HMMAnalysis {
 				loglk, HMMAnalysis.learntHmm, Arrays.toString(steadyState));
 	
 		// write HMM to file
-		BufferedWriter writer = new BufferedWriter(new FileWriter(LogReader.rootDir
+		BufferedWriter writer = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ HMMAnalysis.numStrategies + "StateHmm.txt"));
 		writer.write(String.format("Ending loglikelihood : %.5f\n"
 				+ "Resulting HMM: %s\n" + "Steady state probabilities: %s\n",
@@ -125,7 +125,7 @@ public class HMMAnalysis {
 		BWToleranceLearner bwl = new BWToleranceLearner();
 		double loglk = Double.NEGATIVE_INFINITY;
 	
-		String fileame = String.format("%slearntHMM%dstrategies.txt", LogReader.rootDir,
+		String fileame = String.format("%slearntHMM%dstrategies.txt", PredLkAnalysis.rootDir,
 				numStrategies);
 	
 		// load last best HMM if it exists
@@ -255,7 +255,7 @@ public class HMMAnalysis {
 		}
 	
 		// Write state sequence to csv
-		BufferedWriter writer = new BufferedWriter(new FileWriter(LogReader.rootDir
+		BufferedWriter writer = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ "stateSeq" + HMMAnalysis.numStrategies + "States.csv"));
 	
 		writer.write(String.format("hitId,"));
@@ -342,7 +342,7 @@ public class HMMAnalysis {
 		}
 	
 		// Write hmm type to CSV
-		BufferedWriter writerCsv = new BufferedWriter(new FileWriter(LogReader.rootDir
+		BufferedWriter writerCsv = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ "hmmType" + HMMAnalysis.numStrategies + "Strategies.csv"));
 		for (Game game : LogReader.expSet.games) {
 			writerCsv.write(String.format("%s,", game.id));
@@ -371,7 +371,7 @@ public class HMMAnalysis {
 		}
 	
 		// Write hmmTypeCount to CSV file
-		writerCsv = new BufferedWriter(new FileWriter(LogReader.rootDir + "hmmTypeCount"
+		writerCsv = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir + "hmmTypeCount"
 				+ HMMAnalysis.numStrategies + "Strategies.csv"));
 	
 		// write headings
@@ -401,7 +401,7 @@ public class HMMAnalysis {
 		writerCsv.close();
 	
 		// Write hmmTypeCount to matlab file
-		BufferedWriter writerMatlab = new BufferedWriter(new FileWriter(LogReader.rootDir
+		BufferedWriter writerMatlab = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ "hmmType" + HMMAnalysis.numStrategies + "Strategies.m"));
 	
 		// write data arrays
@@ -557,7 +557,7 @@ public class HMMAnalysis {
 	public static void writeStrategyChangeHeatMap() throws IOException {
 		System.out.println("Write hmm strategy change heat map");
 	
-		BufferedWriter writer1 = new BufferedWriter(new FileWriter(LogReader.rootDir
+		BufferedWriter writer1 = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ "heatMap" + HMMAnalysis.numStrategies + "StrategiesReverseCompare.m"));
 	
 		List<int[]> seqList = new ArrayList<int[]>();
@@ -714,7 +714,7 @@ public class HMMAnalysis {
 			}
 		}
 	
-		BufferedWriter writer = new BufferedWriter(new FileWriter(LogReader.rootDir
+		BufferedWriter writer = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ "strategyDistribution" + HMMAnalysis.numStrategies + "Strategies.m"));
 	
 		for (int strategyIndex = 0; strategyIndex < HMMAnalysis.numStrategies; strategyIndex++) {
@@ -772,7 +772,7 @@ public class HMMAnalysis {
 	public static void genStrategyChangePredictedByHmm() throws IOException {
 		System.out.println("Write strategy change predicted by HMM");
 	
-		BufferedWriter writer3 = new BufferedWriter(new FileWriter(LogReader.rootDir
+		BufferedWriter writer3 = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ "strategyChangePredictedByHmm.m"));
 	
 		writer3.write("a = [");
@@ -823,7 +823,7 @@ public class HMMAnalysis {
 				.getActObsSequence(LogReader.expSet.games);
 		double loglk;
 	
-		BufferedWriter writer = new BufferedWriter(new FileWriter(LogReader.rootDir
+		BufferedWriter writer = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ "logLikelihood.m"));
 	
 		if (LogReader.treatment.equals("prior2-basic"))
@@ -840,7 +840,7 @@ public class HMMAnalysis {
 		for (int numStates = 2; numStates <= 6; numStates++) {
 	
 			String filename = String.format("%slearntHMM%dstrategies.txt",
-					LogReader.rootDir, numStates);
+					PredLkAnalysis.rootDir, numStates);
 			Hmm<SigActObservation<CandySignal, CandyReport>> savedHmm = HMMAnalysis.createHMMFromFile(filename);
 			loglk = BWToleranceLearner.computeLogLk(savedHmm, seq);
 	
@@ -865,7 +865,7 @@ public class HMMAnalysis {
 		for (int numStates = 2; numStates <= 6; numStates++) {
 	
 			String filename = String.format("%slearntHMM%dstrategies.txt",
-					LogReader.rootDir, numStates);
+					PredLkAnalysis.rootDir, numStates);
 			Hmm<SigActObservation<CandySignal, CandyReport>> savedHmm = HMMAnalysis.createHMMFromFile(filename);
 			loglk = BWToleranceLearner.computeLogLk(savedHmm, seq);
 	
