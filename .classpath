@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/jcobyla"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/libmao"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="lib" path="/Users/alicexigao/Documents/workspace/peer/peer-prediction-analysis/lib/gson-2.3.jar"/>
+	<classpathentry kind="lib" path="/Users/alicexigao/.m2/repository/be/ac/ulg/montefiore/run/jahmm/jahmm/0.6.2/jahmm-0.6.2.jar" sourcepath="/Users/alicexigao/.m2/repository/be/ac/ulg/montefiore/run/jahmm/jahmm/0.6.2/jahmm-0.6.2-sources.jar">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+			<attribute name="maven.groupId" value="be.ac.ulg.montefiore.run.jahmm"/>
+			<attribute name="maven.artifactId" value="jahmm"/>
+			<attribute name="maven.version" value="0.6.2"/>
+			<attribute name="maven.scope" value="compile"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/alicexigao/.m2/repository/org/apache/commons/commons-math3/3.3/commons-math3-3.3.jar" sourcepath="/Users/alicexigao/.m2/repository/org/apache/commons/commons-math3/3.3/commons-math3-3.3-sources.jar">
+		<attributes>
+			<attribute name="maven.pomderived" value="true"/>
+			<attribute name="maven.groupId" value="org.apache.commons"/>
+			<attribute name="maven.artifactId" value="commons-math3"/>
+			<attribute name="maven.version" value="3.3"/>
+			<attribute name="maven.scope" value="compile"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/alicexigao/.m2/repository/com/google/guava/guava/15.0/guava-15.0.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
