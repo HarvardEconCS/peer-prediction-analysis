@@ -13,18 +13,197 @@ public class LearningModelsCustom {
 
 	public static double computeLogLk(String model, Map<String, Object> params,
 			List<Game> games) {
-		if (model.equals("s1")) {
-			return computeLogLkS1(params, games);
-		} else if (model.startsWith("s1-1")) {
-			return computeLogLkS1Dash1(params, games);
-		} else if (model.startsWith("s2")) {
+		
+		if (model.startsWith("s2")) {
 			return computeLogLkS2(params, games);
 		} else if (model.startsWith("s3")) {
 			return computeLogLkS3(params, games);
+		} else if (model.startsWith("s1-1")) {
+			return computeLogLkS1Dash1(params, games);
+		} else if (model.equals("s1")) {
+			return computeLogLkS1(params, games);
 		}
+		
 		return Double.NEGATIVE_INFINITY;
 	}
 	
+	/**
+	 * Model s2
+	 * 
+	 * @param params
+	 * @param games
+	 * @return
+	 */
+	public static double computeLogLkS2(Map<String, Object> params,
+			List<Game> games) {
+		
+		boolean isAbs = (boolean) params.get("isAbs");
+		
+		double eps = (double) params.get("eps");
+		double delta = (double) params.get("delta");
+		
+		double probTR = (double) params.get("probTR");
+		double probMM = (double) params.get("probMM");
+		double probGB = (double) params.get("probGB");
+		double probOP = (double) params.get("probOP");
+		double probMixedFixed = (double) params.get("probMixedFixed");
+		double probMixedChange = 1 - probTR - probMM - probGB - probOP - probMixedFixed;
+		if (probTR + probMM + probGB + probOP + probMixedFixed > 1)
+			probMixedChange = 0;
+		
+		double mmGivenMM = (double) params.get("mmGivenMM");
+		double mmGivenGB = (double) params.get("mmGivenGB");
+		List<Double> strParams = new ArrayList<Double>();
+		strParams.add(mmGivenMM);
+		strParams.add(mmGivenGB);
+	
+		double loglk = 0;
+	
+		for (Game game : games) {
+	
+			for (String playerId : game.playerHitIds) {
+				
+				int[] switchInfo = getSwitchInfoS3(game, playerId, isAbs, delta);
+				int roundSwitched = switchInfo[0];
+				int indexNewStrategy = switchInfo[1];
+				String newStrategy = strategyIndexToStringS3(indexNewStrategy);
+	
+				double lkPlayer = 
+					  probTR * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "TR", eps, null)
+					+ probMM * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "MM", eps, null)
+					+ probGB * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "GB", eps, null) 
+					+ probOP * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "OP", eps, null) 
+					+ probMixedFixed * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "CU", eps, strParams)
+					+ probMixedChange * helperGetLkStrategy(game, playerId, 0, roundSwitched, "CU", eps, strParams)
+						* helperGetLkStrategy(game, playerId, roundSwitched, LogReader.expSet.numRounds, newStrategy, eps, strParams);
+	
+				loglk += Math.log(lkPlayer);
+			}
+		}
+	
+		return loglk;
+	}
+
+	/**
+	 * Model s3:
+	 * 
+	 * At the beginning, each player draws a strategy from a set of five
+	 * strategies (truthful, MM, GB, opposite, random) according to a fixed
+	 * distribution. At every round, the player compares his actual payoff to
+	 * his hypothetical payoff if he followed one of the five given strategies
+	 * from the beginning. If his actual payoff is worse than the best
+	 * alternative payoff by an additive/multiplicative factor of delta, then
+	 * the player switches to the best alternative strategy and plays it until
+	 * the end of the game. Otherwise, the player plays his original strategy
+	 * until the end of the game.
+	 * 
+	 * @param params
+	 * @param games
+	 * @return
+	 */
+	public static double computeLogLkS3(Map<String, Object> params,	List<Game> games) {
+	
+		boolean isAbs = (boolean) params.get("isAbs");
+		
+		double eps = (double) params.get("eps");
+		double delta = (double) params.get("delta");
+		
+		double probTR = (double) params.get("probTR");
+		double probMM = (double) params.get("probMM");
+		double probGB = (double) params.get("probGB");
+		double probOP = (double) params.get("probOP");
+		double probRA = 1 - probTR - probMM - probGB - probOP;
+		if (probTR + probMM + probGB + probOP > 1)
+			probRA = 0;
+			
+		double loglk = 0;
+		for (Game game : games) {
+	
+			for (String playerId : game.playerHitIds) {
+	
+				// get round switched and new strategy index
+				int[] switchInfo = getSwitchInfoS3(game, playerId, isAbs, delta);
+				int roundSwitched = switchInfo[0];
+				
+				// likelihood before switching
+				double lkBeforeSwitch = 
+						  probTR * helperGetLkStrategy(game, playerId, 0, roundSwitched, "TR", eps, null) 
+						+ probMM * helperGetLkStrategy(game, playerId, 0, roundSwitched, "MM", eps, null)
+						+ probGB * helperGetLkStrategy(game, playerId, 0, roundSwitched, "GB", eps, null)
+						+ probOP * helperGetLkStrategy(game, playerId, 0, roundSwitched, "OP", eps, null)
+						+ probRA * helperGetLkStrategy(game, playerId, 0, roundSwitched, "RA", eps, null);  
+				
+				// likelihood after switching
+				int indexNewStrategy = switchInfo[1];
+				String newStrategy = strategyIndexToStringS3(indexNewStrategy);
+//				System.out.println(roundSwitched + " " + newStrategy);
+				double lkAfterSwitch = helperGetLkStrategy(game, playerId,
+						roundSwitched, LogReader.expSet.numRounds, newStrategy, eps, null);
+	
+				// add player log likelihood to total log likelihood
+				loglk += Math.log(lkBeforeSwitch) + Math.log(lkAfterSwitch);
+			}
+		}
+	
+		return loglk;
+	}
+
+	/**
+	 * Model s1-1:
+	 * 
+	 * At the beginning of the game, each player draws a strategy from a set of
+	 * 5 strategies (truthful, MM, GB, opposite, random) according to a fixed
+	 * distribution. Then the player plays this strategy for the entire game.
+	 * 
+	 * @param params
+	 * @param games
+	 * @return
+	 */
+	public static double computeLogLkS1Dash1(Map<String, Object> params,
+			List<Game> games) {
+	
+		double eps = (double) params.get("eps");
+		
+		double probTR = (double) params.get("probTR");
+		double probMM = (double) params.get("probMM");
+		double probGB = (double) params.get("probGB");
+		double probOP = (double) params.get("probOP");
+		double probMixed = 1 - probTR - probMM - probGB - probOP;
+		if (probTR + probMM + probGB + probOP> 1)
+			probMixed = 0;
+				
+		double mmGivenMM = (double) params.get("mmGivenMM");
+		double mmGivenGB = (double) params.get("mmGivenGB");
+		List<Double> strParams = new ArrayList<Double>();
+		strParams.add(mmGivenMM);
+		strParams.add(mmGivenGB);
+	
+		double mmgmmTR = (double) params.get("mmGivenMMForMM");
+		double mmggbTR = (double) params.get("mmGivenGBForMM");
+		List<Double> trParams = new ArrayList<Double>();
+		trParams.add(mmgmmTR);
+		trParams.add(mmggbTR);
+
+		double loglk = 0;
+	
+		for (Game game : games) {
+	
+			for (String playerId : game.playerHitIds) {
+	
+				double lkPlayer = 
+					  probTR * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "TR", eps, null)
+					+ probMM * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "CU", eps, null)
+					+ probGB * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "GB", eps, null) 
+					+ probOP * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "OP", eps, null) 
+					+ probMixed * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "CU", eps, strParams);
+	
+				loglk += Math.log(lkPlayer);
+			}
+		}
+	
+		return loglk;
+	}
+
 	/**
 	 * Model s1:
 	 * 
@@ -68,134 +247,7 @@ public class LearningModelsCustom {
 	
 		return loglk;
 	}
-
 	
-	/**
-	 * Model s1:
-	 * 
-	 * At the beginning of the game, each player draws a strategy from a set of
-	 * 5 strategies (truthful, MM, GB, opposite, random) according to a fixed
-	 * distribution. Then the player plays this strategy for the entire game.
-	 * 
-	 * @param params
-	 * @param games
-	 * @return
-	 */
-	public static double computeLogLkS1Dash1(Map<String, Object> params,
-			List<Game> games) {
-	 
-		double eps = (double) params.get("eps");
-		
-		double probTR = (double) params.get("probTR");
-		double probMM = (double) params.get("probMM");
-		double probGB = (double) params.get("probGB");
-		double probOP = (double) params.get("probOP");
-		double probMixed = 1 - probTR - probMM - probGB - probOP;
-		if (probTR + probMM + probGB + probOP> 1)
-			probMixed = 0;
-		
-		double mmGivenMM = (double) params.get("mmGivenMM");
-		double mmGivenGB = (double) params.get("mmGivenGB");
-		List<Double> strParams = new ArrayList<Double>();
-		strParams.add(mmGivenMM);
-		strParams.add(mmGivenGB);
-
-		double loglk = 0;
-	
-		for (Game game : games) {
-	
-			for (String playerId : game.playerHitIds) {
-	
-				double lkPlayer = 
-					  probTR * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "TR", eps, null)
-					+ probMM * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "MM", eps, null)
-					+ probGB * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "GB", eps, null) 
-					+ probOP * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "OP", eps, null) 
-					+ probMixed * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "CU", eps, strParams);
-	
-				loglk += Math.log(lkPlayer);
-			}
-		}
-	
-		return loglk;
-	}
-	
-	/**
-	 * Model s2
-	 * 
-	 * @param params
-	 * @param games
-	 * @return
-	 */
-	public static double computeLogLkS2(Map<String, Object> params,
-			List<Game> games) {
-		return 0;
-	}
-
-	/**
-	 * Model s3:
-	 * 
-	 * At the beginning, each player draws a strategy from a set of five
-	 * strategies (truthful, MM, GB, opposite, random) according to a fixed
-	 * distribution. At every round, the player compares his actual payoff to
-	 * his hypothetical payoff if he followed one of the five given strategies
-	 * from the beginning. If his actual payoff is worse than the best
-	 * alternative payoff by an additive/multiplicative factor of delta, then
-	 * the player switches to the best alternative strategy and plays it until
-	 * the end of the game. Otherwise, the player plays his original strategy
-	 * until the end of the game.
-	 * 
-	 * @param params
-	 * @param games
-	 * @return
-	 */
-	public static double computeLogLkS3(Map<String, Object> params,	List<Game> games) {
-	
-		boolean isAbs = (boolean) params.get("isAbs");
-		
-		double eps = (double) params.get("eps");
-		double delta = (double) params.get("delta");
-		
-		double probTR = (double) params.get("probTR");
-		double probMM = (double) params.get("probMM");
-		double probGB = (double) params.get("probGB");
-		double probOP = (double) params.get("probOP");
-		double probRA = 1 - probTR - probMM - probGB - probOP;
-		if (probTR + probMM + probGB + probOP > 1)
-			probRA = 0;
-
-		double loglk = 0;
-	
-		for (Game game : games) {
-	
-			for (String playerId : game.playerHitIds) {
-	
-				// get round switched and new strategy index
-				int[] switchInfo = getSwitchInfoS3(game, playerId, isAbs, delta);
-				int roundSwitched = switchInfo[0];
-	
-				// likelihood before switching
-				double lkBeforeSwitch = 
-						  probTR * helperGetLkStrategy(game, playerId, 0, roundSwitched, "TR", eps, null) 
-						+ probMM * helperGetLkStrategy(game, playerId, 0, roundSwitched, "MM", eps, null)
-						+ probGB * helperGetLkStrategy(game, playerId, 0, roundSwitched, "GB", eps, null)
-						+ probOP * helperGetLkStrategy(game, playerId, 0, roundSwitched, "OP", eps, null)
-						+ probRA * helperGetLkStrategy(game, playerId, 0, roundSwitched, "RA", eps, null);  
-				
-				// likelihood after switching
-				int indexNewStrategy = switchInfo[1];
-				String newStrategy = strategyIndexToStringS3(indexNewStrategy);
-				double lkAfterSwitch = helperGetLkStrategy(game, playerId,
-						roundSwitched, LogReader.expSet.numRounds, newStrategy, eps, null);
-	
-				// add player log likelihood to total log likelihood
-				loglk += Math.log(lkBeforeSwitch) + Math.log(lkAfterSwitch);
-			}
-		}
-	
-		return loglk;
-	}
-
 	static int[] getSwitchInfoS3(Game game, String playerId, boolean isAbs, double delta) {
 		double actualPayoff = 0.0; 
 		int numStrategies = 5;
@@ -219,7 +271,7 @@ public class LearningModelsCustom {
 			
 			// update actual and hypothetical payoffs
 			actualPayoff += reward;
-			updateHypoPayoffsS3(hypoPayoffs, playerId, signal, r, LogReader.treatment);
+			updateHypoPayoffsS3(hypoPayoffs, playerId, signal, r, PredLkAnalysis.treatment);
 
 		}
 		return new int[] { round, indexStrategy };
@@ -268,10 +320,10 @@ public class LearningModelsCustom {
 		hypoPayoffs.set(index, payoffOP);
 
 		index = 4;
-		double payoffRA = hypoPayoffs.get(index) 
-				+ 0.5 * r.getHypoReward(treatment, playerId, "MM") 
+		double payoffRandom = hypoPayoffs.get(index) 
+				+ 0.5 * r.getHypoReward(treatment, playerId, "MM")
 				+ 0.5 * r.getHypoReward(treatment, playerId, "GB");
-		hypoPayoffs.set(index, payoffRA);
+		hypoPayoffs.set(index, payoffRandom);
 	}
 	
 	/**
@@ -280,7 +332,7 @@ public class LearningModelsCustom {
 	 * @return
 	 */
 	static String strategyIndexToStringS3(int strategyIndex) {
-		String strategyName = "";
+		String strategyName = "Unrecognized";
 		switch (strategyIndex) {
 		case 0:
 			strategyName = "TR";
@@ -328,52 +380,13 @@ public class LearningModelsCustom {
 				if (signal.equals(report)) lk *= 1 - eps;
 				else lk *= eps;
 				break;
-			case "TRFixed":
-				if (signal.equals("MM")) {
-					if (report.equals("MM"))
-						lk *= 0.99;
-					else 
-						lk *= 1 - 0.99;
-				} else if (signal.equals("GB")) {
-					if (report.equals("MM"))
-						lk *= 0.04;
-					else 
-						lk *= 1 - 0.04;
-				}
-				break;
 			case "MM":
 				if (report.equals(strategy)) lk *= 1 - eps;
 				else lk *= eps;
 				break;
-			case "MMFixed":
-				if (signal.equals("MM")) {
-					if (report.equals("MM"))
-						lk *= 0.98;
-					else 
-						lk *= 1 - 0.98;
-				} else if (signal.equals("GB")) {
-					if (report.equals("MM"))
-						lk *= 0.9;
-					else 
-						lk *= 1 - 0.9;
-				}
-				break;
 			case "GB":
 				if (report.equals(strategy)) lk *= 1 - eps;
 				else lk *= eps;
-				break;
-			case "GBFixed":
-				if (signal.equals("MM")) {
-					if (report.equals("MM"))
-						lk *= 0.13;
-					else 
-						lk *= 1 - 0.13;
-				} else if (signal.equals("GB")) {
-					if (report.equals("MM"))
-						lk *= 0.09;
-					else 
-						lk *= 1 - 0.09;
-				}
 				break;
 			case "OP":
 				if (!signal.equals(report))	lk *= 1 - eps;
@@ -417,8 +430,12 @@ public class LearningModelsCustom {
 		// objective function
 		Calcfc function = new LogLkFunctionCobyla(trainingSet, model);
 
-		int restartIndex = 0;
 		int numRestarts = 10;
+		if (model.startsWith("s3")) {
+			numRestarts = (int) Math.round(getUBCobyla(model, "delta"));
+		}
+		
+		int restartIndex = 0;
 		double[] point = null;
 		boolean shouldStop = false;
 
@@ -426,35 +443,28 @@ public class LearningModelsCustom {
 		double[] bestPoint = null;
 
 		while (!shouldStop) {
-			point = setRandomStartPoint(model);
+			point = oSetRandomStartPoint(model);
+			
+			// modify starting point
 			if (model.equals("s1-1")) {
 				point[4] = 0.5 / numRestarts * restartIndex;
+			} else if (model.startsWith("s3")) {
+				point[5] = getUBCobyla(model, "delta") / numRestarts * restartIndex;
 			}
-			
-//			if (model.startsWith("s3")) {
-//				point[4] = getUBCobyla(model, "delta") / numRestarts
-//						* restartIndex;
-//			}
 			
 			Cobyla.FindMinimum(function, numVariables, numConstraints, point,
 					rhobeg, rhoend, iprint, maxfun);
 
 			// if constraints are violated
-			if (LearningModelsCustom.constraintsViolated(model, point)) {
+			if (LearningModelsCustom.oConstraintsViolated(model, point)) {
 				((LogLkFunctionCobyla) function).squarePenCoeff();
 				continue;
 			}
-			
-			// if eps > 0.1
-//			if (model.equals("s1-1") && point[4] > 0.1) {
-//				System.out.println("eps > 0.1, "
-//						+ pointToMap(model, point).toString());
-//				continue;
-//			}
-			
-			double loglk = computeLogLk(model, pointToMap(model, point), trainingSet);
+						
+			double loglk = computeLogLk(model, oPointToMap(model, point), trainingSet);
+			System.out.println(oPointToMap(model, point));
 			if (loglk > bestLogLk) {
-//				System.out.println(pointToMap(model, point));
+				System.out.printf("loglk = %.2f, better\n", loglk);
 				bestLogLk = loglk;
 				bestPoint = point;
 			}
@@ -473,14 +483,16 @@ public class LearningModelsCustom {
 		int numConstraints = 0;
 		
 		if (model.startsWith("s3")) {
+			
 			numVariables = 6;
 			numConstraints = 9;
+			
 		} else if (model.equals("s2")) {
-			numVariables = 6;
-			numConstraints = 9;
+			numVariables = 9;
+			numConstraints = 14;
 		} else if (model.equals("s1-1")) {
-			numVariables = 7;
-			numConstraints = 11;
+			numVariables = 9;
+			numConstraints = 17;
 		} else if (model.equals("s1")) {
 			numVariables = 5;
 			numConstraints = 7;
@@ -498,40 +510,46 @@ public class LearningModelsCustom {
 	 * @param model
 	 * @return
 	 */
-	static double[] setRandomStartPoint(String model) {
+	static double[] oSetRandomStartPoint(String model) {
 		
 		double[] randomVec5 = Utils.getRandomVec(5);
+		double[] randomVec6 = Utils.getRandomVec(6);
 		
-		if (model.startsWith("s3")) {
+		if (model.startsWith("s2")) {
+
+			double epsStart = Utils.rand.nextDouble() * getUBCobyla(model, "eps");
+			double deltaStart = Utils.rand.nextDouble() * getUBCobyla(model, "delta");
+			double mmGivenMM = Utils.rand.nextDouble();
+			double mmGivenGB = Utils.rand.nextDouble();
+			
+			return new double[] { randomVec6[0], randomVec6[1], randomVec6[2], randomVec6[3],
+					epsStart, deltaStart, mmGivenMM, mmGivenGB, randomVec6[4] };
+			
+		} else if (model.startsWith("s3")) {
 			
 			double epsStart = Utils.rand.nextDouble() * getUBCobyla(model, "eps");
 			double deltaStart = Utils.rand.nextDouble() * getUBCobyla(model, "delta");
-//			double deltaStart = 5;
 			
 			return new double[] { randomVec5[0], randomVec5[1], randomVec5[2], randomVec5[3],
-					epsStart, deltaStart };
-			
+					epsStart, deltaStart};
 			
 		} else if (model.equals("s1-1")) {
 			
 			double epsStart = Utils.rand.nextDouble() * getUBCobyla(model, "eps");
 			double mmGivenMM = Utils.rand.nextDouble();
 			double mmGivenGB = Utils.rand.nextDouble();
+			double mmGivenMMForMM = Utils.rand.nextDouble();
+			double mmGivenGBForMM = Utils.rand.nextDouble();
 			
 			return new double[] { randomVec5[0], randomVec5[1], randomVec5[2], randomVec5[3],
-					epsStart, mmGivenMM, mmGivenGB};
+					epsStart, mmGivenMM, mmGivenGB, mmGivenMMForMM, mmGivenGBForMM};
 	
-			
 		} else if (model.equals("s1")) {
 			
 			double epsStart = Utils.rand.nextDouble() * getUBCobyla(model, "eps");
 			
 			return new double[] { randomVec5[0], randomVec5[1], randomVec5[2], randomVec5[3], 
 					epsStart};
-	
-			
-		} else if (model.equals("s2")) {
-			// TODO
 
 		} else if (model.startsWith("RL") || model.startsWith("SFP")) {
 			return new double[] { 0.0, 1.0 };
@@ -539,59 +557,154 @@ public class LearningModelsCustom {
 		return null;
 	}
 
-	static boolean constraintsViolated(String model, double[] point) {
+	/**
+	 * Order matters
+	 */
+	static boolean oConstraintsViolated(String model, double[] point) {
 
-		if (model.startsWith("s3")) {
+		if (model.equals("s2")) {
+			
+			if (point[0] < 0 || point[1] < 0 || point[2] < 0 || point[3] < 0 || point[8] < 0) {
+				return true;
+			}
+			if (point[0] + point[1] + point[2] + point[3] + point[8] > 1) {
+				return true;
+			}
+			
+			if (constraintsViolatedEps(model, point)) return true;
+			
+			if (constraintsViolatedDelta(model, point)) return true;
+			
+			if (point[6] < 0 || point[6] > 1) 
+				return true;
+			if (point[7] < 0 || point[7] > 1)
+				return true;
+			
+		} else if (model.startsWith("s3")) {
 
-			if (point[0] < 0 || point[1] < 0 || point[2] < 0 || point[3] < 0) {
-				return true;
-			}
-			if (point[0] + point[1] + point[2] + point[3] > 1) {
-				return true;
-			}
-			
-			double epsUB = LearningModelsCustom.getUBCobyla(model, "eps");
-			if (point[4] < 0 || point[4] > epsUB) {
-				return true;
-			}
-			
-			double deltaLB = LearningModelsCustom.getLBCobyla(model, "delta");
-			double deltaUB = LearningModelsCustom.getUBCobyla(model, "delta");
-			if (point[5] < deltaLB || point[5] > deltaUB) {
-				return true;
-			}
-			
-		} else if (model.equals("s2")) {
-			// TODO
-		} else if (model.equals("s1")) {
-			
-			if (point[0] < 0 || point[1] < 0 || point[2] < 0 || point[3] < 0)
-				return true;
-			if (point[0] + point[1] + point[2] + point[3] > 1)
-				return true;
-			
-			double epsUB = LearningModelsCustom.getUBCobyla(model, "eps");
-			if (point[4] < 0 || point[4] > epsUB)
-				return true;
+			if (constraintsViolatedStrategiesV1(point)) return true;
+			if (constraintsViolatedEps(model, point)) return true;
+			if (constraintsViolatedDelta(model, point))	return true;
 
+			
 		} else if (model.equals("s1-1")) {
 			
-			if (point[0] < 0 || point[1] < 0 || point[2] < 0 || point[3] < 0)
-				return true;
-			if (point[0] + point[1] + point[2] + point[3] > 1)
-				return true;
+			if (constraintsViolatedStrategiesV1(point)) return true;
 			
-			double epsUB = LearningModelsCustom.getUBCobyla(model, "eps");
-			if (point[4] < 0 || point[4] > epsUB)
-				return true;
+			if (constraintsViolatedEps(model, point)) return true;
 			
 			if (point[5] < 0 || point[5] > 1) 
 				return true;
 			if (point[6] < 0 || point[6] > 1)
 				return true;
+			
+//			if (1 - point[4] - point[5] < 0)
+//				return true;
+//			if (point[6] - (1 - point[4]) < 0) 
+//				return true;
+		
+			if (point[7] < 0.5 || point[7] > 1) 
+				return true;
+			if (point[8] < 0.5 || point[8] > 1)
+				return true;
+			
+			if (point[7] < point[5])
+				return true;
+			if (point[8] < point[6])
+				return true;
+
+		} else if (model.equals("s1")) {
+			
+			if (constraintsViolatedStrategiesV1(point)) return true;
+			
+			if (constraintsViolatedEps(model, point)) return true;
 
 		}
 		return false;
+	}
+
+	private static boolean constraintsViolatedStrategiesV1(double[] point) {
+		if (point[0] < 0 || point[1] < 0 || point[2] < 0 || point[3] < 0)
+			return true;
+		if (point[0] + point[1] + point[2] + point[3] > 1)
+			return true;
+		return false;
+	}
+
+	private static boolean constraintsViolatedEps(String model, double[] point) {
+		double epsLB = LearningModelsCustom.getLBCobyla(model, "eps");
+		double epsUB = LearningModelsCustom.getUBCobyla(model, "eps");
+		if (point[4] < epsLB || point[4] > epsUB)
+			return true;
+		return false;
+	}
+
+	private static boolean constraintsViolatedDelta(String model, double[] point) {
+		double deltaLB = LearningModelsCustom.getLBCobyla(model, "delta");
+		double deltaUB = LearningModelsCustom.getUBCobyla(model, "delta");
+		if (point[5] < deltaLB || point[5] > deltaUB) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Convert parameter point to map
+	 * @param model
+	 * @param point
+	 * @return
+	 */
+	static Map<String, Object> oPointToMap(String model, double[] point) {
+		Map<String, Object> params = new HashMap<String, Object>();
+		
+		if (model.startsWith("s2")) {
+			
+			boolean isAbs = model.split("-")[1].equals("abs");
+			params.put("isAbs", isAbs);
+	
+			params.put("probTR", point[0]);
+			params.put("probMM", point[1]);
+			params.put("probGB", point[2]);
+			params.put("probOP", point[3]);
+			params.put("eps", 	 point[4]);
+			params.put("delta",  point[5]);
+			params.put("mmGivenMM", point[6]);
+			params.put("mmGivenGB", point[7]);
+			params.put("probMixedFixed", point[8]);
+			
+		} else if (model.startsWith("s3")) {
+			
+			boolean isAbs = model.split("-")[1].equals("abs");
+			params.put("isAbs", isAbs);
+	
+			params.put("probTR", point[0]);
+			params.put("probMM", point[1]);
+			params.put("probGB", point[2]);
+			params.put("probOP", point[3]);
+			params.put("eps", 	 point[4]);
+			params.put("delta",  point[5]);
+			
+		} else if (model.equals("s1-1")) {
+
+			params.put("probTR", 	point[0]);
+			params.put("probMM", 	point[1]);
+			params.put("probGB", 	point[2]);
+			params.put("probOP", 	point[3]);
+			params.put("eps", 	 	point[4]);
+			params.put("mmGivenMM", point[5]);
+			params.put("mmGivenGB", point[6]);
+			params.put("mmGivenMMForMM", point[7]);
+			params.put("mmGivenGBForMM", point[8]);
+
+		} else if (model.equals("s1")) {
+			
+			params.put("probTR", point[0]);
+			params.put("probMM", point[1]);
+			params.put("probGB", point[2]);
+			params.put("probOP", point[3]);
+			params.put("eps",    point[4]);			
+		} 
+		return params;
 	}
 
 	/**
@@ -647,49 +760,6 @@ public class LearningModelsCustom {
 			
 		}
 		return Double.NEGATIVE_INFINITY;
-	}
-
-	/**
-	 * Convert parameter point to map
-	 * @param model
-	 * @param point
-	 * @return
-	 */
-	static Map<String, Object> pointToMap(String model, double[] point) {
-		Map<String, Object> params = new HashMap<String, Object>();
-		
-		if (model.equals("s1")) {
-			
-			params.put("probTR", point[0]);
-			params.put("probMM", point[1]);
-			params.put("probGB", point[2]);
-			params.put("probOP", point[3]);
-			params.put("eps", 	 point[4]);
-			
-		} else if (model.equals("s1-1")) {
-
-			params.put("probTR", 	point[0]);
-			params.put("probMM", 	point[1]);
-			params.put("probGB", 	point[2]);
-			params.put("probOP", 	point[3]);
-			params.put("eps", 	 	point[4]);
-			params.put("mmGivenMM", point[5]);
-			params.put("mmGivenGB", point[6]);
-			
-		} else if (model.startsWith("s3")) {
-			
-			boolean isAbs = model.split("-")[1].equals("abs");
-			params.put("isAbs", isAbs);
-			
-			params.put("probTR", point[0]);
-			params.put("probMM", point[1]);
-			params.put("probGB", point[2]);
-			params.put("probOP", point[3]);
-			params.put("eps", 	 point[4]);
-			params.put("delta",  point[5]);
-			
-		}
-		return params;
 	}
 
 	public static void addToParamRoundSwitched(Map<String, Object> params, String model) {

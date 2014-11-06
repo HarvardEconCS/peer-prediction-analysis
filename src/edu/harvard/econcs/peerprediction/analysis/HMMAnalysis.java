@@ -46,14 +46,14 @@ public class HMMAnalysis {
 		System.out.println("Learning HMM");
 	
 		// Set number of strategies
-		if (LogReader.treatment.equals("prior2-basic")
-				|| LogReader.treatment.equals("prior2-outputagreement")) {
+		if (PredLkAnalysis.treatment.equals("prior2-basic")
+				|| PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 			HMMAnalysis.numStrategies = 4;
-		} else if (LogReader.treatment.equals("prior2-uniquetruthful")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 			HMMAnalysis.numStrategies = 4;
-		} else if (LogReader.treatment.equals("prior2-symmlowpay")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 			HMMAnalysis.numStrategies = 4;
-		} else if (LogReader.treatment.equals("prior2-constant")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-constant")) {
 			HMMAnalysis.numStrategies = 4;
 		}
 		HMMAnalysis.strategyNames = new String[HMMAnalysis.numStrategies];
@@ -296,7 +296,7 @@ public class HMMAnalysis {
 					numPlayerForStrategy[strategyIndexForRound]++;
 				}
 	
-				if (!LogReader.treatment.equals("prior2-uniquetruthful")) {
+				if (!PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 					// other treatments
 	
 					for (int strategyIndex = 0; strategyIndex < HMMAnalysis.numStrategies; strategyIndex++) {
@@ -378,7 +378,7 @@ public class HMMAnalysis {
 		for (int j = 0; j < HMMAnalysis.numStrategies; j++) {
 			writerCsv.write(String.format("%s,", HMMAnalysis.strategyNames[j]));
 		}
-		if (LogReader.treatment.equals("prior2-uniquetruthful")) {
+		if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 			writerCsv.write(String.format("%s,", "1MM3GB"));
 			writerCsv.write(String.format("%s,", "3MM1GB"));
 		}
@@ -389,7 +389,7 @@ public class HMMAnalysis {
 			for (int j = 0; j < HMMAnalysis.numStrategies; j++) {
 				writerCsv.write(String.format("%d,", hmmTypeCount[i][j]));
 			}
-			if (LogReader.treatment.equals("prior2-uniquetruthful")) {
+			if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 				writerCsv.write(String.format("%d,",
 						hmmTypeCount[i][HMMAnalysis.numStrategies]));
 				writerCsv.write(String.format("%d,",
@@ -407,13 +407,13 @@ public class HMMAnalysis {
 		// write data arrays
 		for (int j = 0; j < HMMAnalysis.numStrategies; j++) {
 	
-			if (LogReader.treatment.equals("prior2-symmlowpay")) {
+			if (PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 				// treatment 4
 				if (HMMAnalysis.strategyNames[j].equals("Mixed")
 						|| HMMAnalysis.strategyNames[j].equals("Mixed2")) {
 					continue;
 				}
-			} else if (LogReader.treatment.equals("prior2-uniquetruthful")) {
+			} else if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 				// treatment 3, skip MM and GB strategies
 				if (HMMAnalysis.strategyNames[j].equals("MM")
 						|| HMMAnalysis.strategyNames[j].equals("GB")) {
@@ -434,7 +434,7 @@ public class HMMAnalysis {
 			writerMatlab.write("]';\n");
 	
 		}
-		if (LogReader.treatment.equals("prior2-uniquetruthful")) {
+		if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 			// write data for treatment 3
 			writerMatlab.write(String.format("oneMMThreeGB = ["));
 			for (int i = 0; i < LogReader.expSet.numRounds; i++) {
@@ -459,7 +459,7 @@ public class HMMAnalysis {
 			for (int j = 0; j < HMMAnalysis.numStrategies; j++) {
 				num -= hmmTypeCount[i][j] * 1.0 / LogReader.expSet.nonKilledGames;
 			}
-			if (LogReader.treatment.equals("prior2-uniquetruthful")) {
+			if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 				num -= hmmTypeCount[i][HMMAnalysis.numStrategies] * 1.0 / LogReader.expSet.nonKilledGames;
 				num -= hmmTypeCount[i][HMMAnalysis.numStrategies + 1] * 1.0
 						/ LogReader.expSet.nonKilledGames;
@@ -475,13 +475,13 @@ public class HMMAnalysis {
 		// plot bar chart
 		writerMatlab.write(String.format("hBar = bar(0:%d, [",
 				LogReader.expSet.numRounds - 1));
-		if (LogReader.treatment.equals("prior2-basic")) {
+		if (PredLkAnalysis.treatment.equals("prior2-basic")) {
 			writerMatlab.write("MM GB Truthful");
-		} else if (LogReader.treatment.equals("prior2-outputagreement")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 			writerMatlab.write("GB MM Truthful");
-		} else if (LogReader.treatment.equals("prior2-uniquetruthful")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 			writerMatlab.write("Mixed threeMMOneGB oneMMThreeGB ");
-		} else if (LogReader.treatment.equals("prior2-symmlowpay")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 			writerMatlab.write("MM");
 		} else {
 			writerMatlab.write("Truthful GB MM");
@@ -494,13 +494,13 @@ public class HMMAnalysis {
 		int axisFontSize = 20;
 	
 		String ytick = "";
-		if (LogReader.treatment.equals("prior2-basic")) {
+		if (PredLkAnalysis.treatment.equals("prior2-basic")) {
 			ytick = "[0 0.45 0.54 1]";
-		} else if (LogReader.treatment.equals("prior2-outputagreement")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 			ytick = "[0 0.36 0.46 1]";
-		} else if (LogReader.treatment.equals("prior2-uniquetruthful")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 			ytick = "[0 0.12 0.17 1]";
-		} else if (LogReader.treatment.equals("prior2-symmlowpay")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 			ytick = "[0.02 1]";
 		} else {
 			ytick = "[0 1]";
@@ -524,11 +524,11 @@ public class HMMAnalysis {
 		// write legend
 		writerMatlab.write("lh = legend(");
 	
-		if (LogReader.treatment.equals("prior2-uniquetruthful")) {
+		if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 			writerMatlab.write("'Mixed', 'threeMMOneGB', 'oneMMThreeGB', ");
-		} else if (LogReader.treatment.equals("prior2-symmlowpay")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 			writerMatlab.write("'MM', ");
-		} else if (LogReader.treatment.equals("prior2-outputagreement")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 			writerMatlab.write("'GB', 'MM', 'Truthful', ");
 		} else {
 			writerMatlab.write("'MM', 'GB', 'Truthful', ");
@@ -538,11 +538,11 @@ public class HMMAnalysis {
 	
 		// set colors
 		writerMatlab.write(String.format("set(hBar,{'FaceColor'},{"));
-		if (LogReader.treatment.equals("prior2-uniquetruthful")) {
+		if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 			writerMatlab.write("[0.6 0.6 0.6];'y';'r';");
-		} else if (LogReader.treatment.equals("prior2-symmlowpay")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 			writerMatlab.write("[1 0.64 0];");
-		} else if (LogReader.treatment.equals("prior2-outputagreement")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 			writerMatlab.write("'b';[1 0.64 0];'g';");
 		} else {
 			writerMatlab.write("[1 0.64 0];'b';'g';");
@@ -728,7 +728,7 @@ public class HMMAnalysis {
 	
 		writer.write(String.format("\n\n" + "figure;\n" + "hBar = bar(1:%d, ",
 				LogReader.expSet.numRounds));
-		if (LogReader.treatment.equals("prior2-symmlowpay")) {
+		if (PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 			if (HMMAnalysis.numStrategies == 4)
 				writer.write("[Truthful MM Mixed Mixed2]");
 			else if (HMMAnalysis.numStrategies == 3)
@@ -747,7 +747,7 @@ public class HMMAnalysis {
 		writer.write(String.format("axis([0 %d 0 1]);\n", LogReader.expSet.numRounds + 1));
 	
 		writer.write("lh = legend(");
-		if (LogReader.treatment.equals("prior2-symmlowpay")) {
+		if (PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 			if (HMMAnalysis.numStrategies == 4)
 				writer.write("'Truthful', 'MM', 'Mixed', 'Mixed2'");
 			else if (HMMAnalysis.numStrategies == 3)
@@ -757,7 +757,7 @@ public class HMMAnalysis {
 		}
 		writer.write(", 'Location', 'Best');\n" + "set(lh, 'FontSize', 20);\n");
 	
-		if (LogReader.treatment.equals("prior2-symmlowpay")) {
+		if (PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 			if (HMMAnalysis.numStrategies == 4)
 				writer.write("set(hBar,{'FaceColor'},{'g';[1 0.64 0];[0.5 0.5 0.5];[0.8 0.8 0.8];});\n");
 			else if (HMMAnalysis.numStrategies == 3)
@@ -826,15 +826,15 @@ public class HMMAnalysis {
 		BufferedWriter writer = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
 				+ "logLikelihood.m"));
 	
-		if (LogReader.treatment.equals("prior2-basic"))
+		if (PredLkAnalysis.treatment.equals("prior2-basic"))
 			writer.write("treatment1loglk = [");
-		else if (LogReader.treatment.equals("prior2-outputagreement"))
+		else if (PredLkAnalysis.treatment.equals("prior2-outputagreement"))
 			writer.write("treatment2loglk = [");
-		else if (LogReader.treatment.equals("prior2-uniquetruthful"))
+		else if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful"))
 			writer.write("treatment3loglk = [");
-		else if (LogReader.treatment.equals("prior2-symmlowpay"))
+		else if (PredLkAnalysis.treatment.equals("prior2-symmlowpay"))
 			writer.write("treatment4loglk = [");
-		else if (LogReader.treatment.equals("prior2-constant"))
+		else if (PredLkAnalysis.treatment.equals("prior2-constant"))
 			writer.write("treatment5loglk = [");
 	
 		for (int numStates = 2; numStates <= 6; numStates++) {
@@ -851,15 +851,15 @@ public class HMMAnalysis {
 		System.out.println("Graph Bayesian information criterion");
 		double bic;
 	
-		if (LogReader.treatment.equals("prior2-basic"))
+		if (PredLkAnalysis.treatment.equals("prior2-basic"))
 			writer.write("treatment1bic = [");
-		else if (LogReader.treatment.equals("prior2-outputagreement"))
+		else if (PredLkAnalysis.treatment.equals("prior2-outputagreement"))
 			writer.write("treatment2bic = [");
-		else if (LogReader.treatment.equals("prior2-uniquetruthful"))
+		else if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful"))
 			writer.write("treatment3bic = [");
-		else if (LogReader.treatment.equals("prior2-symmlowpay"))
+		else if (PredLkAnalysis.treatment.equals("prior2-symmlowpay"))
 			writer.write("treatment4bic = [");
-		else if (LogReader.treatment.equals("prior2-constant"))
+		else if (PredLkAnalysis.treatment.equals("prior2-constant"))
 			writer.write("treatment5bic = [");
 	
 		for (int numStates = 2; numStates <= 6; numStates++) {

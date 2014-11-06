@@ -22,7 +22,13 @@ import be.ac.ulg.montefiore.run.jahmm.Hmm;
 public class PredLkAnalysis {
 
 	static String rootDir = "/Users/alicexigao/Dropbox/peer-prediction/data/"
-			+ LogReader.treatment + "/";
+			+ PredLkAnalysis.treatment + "/";
+	
+	static String treatment = "prior2-basic";
+	//	 static String treatment = "prior2-outputagreement";
+	//	 static String treatment = "prior2-uniquetruthful";
+	//	 static String treatment = "prior2-symmlowpay";
+	//	 static String treatment = "prior2-constant";
 	
 	static int numFolds = 10;
 	static int numRoundsCV = 10;
@@ -31,19 +37,21 @@ public class PredLkAnalysis {
 
 	public static void main(String[] args) throws Exception {
 			
+		// set root directory for data
 		String homeDir = System.getProperty("user.home");
 		String separator = System.getProperty("file.separator");
-		rootDir = homeDir + separator + "ppdata" + separator + LogReader.treatment + separator;
+		rootDir = homeDir + separator + "ppdata" + separator + PredLkAnalysis.treatment + separator;
 		
 		LogReader.parseTextfile();
 		LogReader.printTreatmentInfo();
 
-		if (args.length < 1) {
-			System.err.println("Please provide a model");
+		if (args.length < 2) {
+			System.err.println("Please provide a model and a treatment");
 			System.exit(0);
 		}
 
 		String model = args[0];
+		treatment = args[1];
 
 		avgLogLks = new HashMap<String, List<Double>>();
 		randomLogLk = getLogLkRandomModel();
@@ -52,20 +60,7 @@ public class PredLkAnalysis {
 		getPredictiveLogLk(model);
 		printCurrentDateTime();
 		
-//		getPredictiveLogLk("HMM");
-//		printCurrentDateTime();
-
-//		getPredictiveLogLk("s1");
-//		printCurrentDateTime();
-				
-//		getPredictiveLogLk("s2");
-//		printCurrentDateTime();
-		
-//		getPredictiveLogLk("s3-abs");
-//		printCurrentDateTime();
-
-		// getPredictiveLogLk("s3-rel");
-//		printCurrentDateTime();
+		// models: HMM, s1, s1-1, s2, s3-abs, s3-rel
 
 //		graphPredictiveLogLk();
 	}
@@ -85,6 +80,9 @@ public class PredLkAnalysis {
 		List<Double> loglks = new ArrayList<Double>();
 		DescriptiveStatistics stats = new DescriptiveStatistics();
 	
+		System.out.printf("number of rounds: %d\n", numRoundsCV);
+		System.out.printf("number of folds per round: %d\n", numFolds);
+		
 		for (int l = 0; l < PredLkAnalysis.numRoundsCV; l++) {
 	
 			System.out.printf("Round %d: ", l);
@@ -115,6 +113,7 @@ public class PredLkAnalysis {
 						trainingSet);
 				if (!model.equals("HMM"))
 					Utils.printParams(bestParam);
+				double loglk = LearningModelsCustom.computeLogLk(model, bestParam, trainingSet);
 	
 				// Compute loglk on test set
 				double testLoglk = getTestLogLk(model, bestParam, testSet)
@@ -154,7 +153,7 @@ public class PredLkAnalysis {
 		if (model.startsWith("s3") || model.equals("s2") || model.equals("s1") || model.equals("s1-1")) {
 	
 			double[] point = LearningModelsCustom.estimateUsingCobyla(model, trainingSet);
-			params = LearningModelsCustom.pointToMap(model, point);
+			params = LearningModelsCustom.oPointToMap(model, point);
 	
 		} else if (model.equals("HMM")) {
 	
@@ -295,7 +294,7 @@ public class PredLkAnalysis {
 		}
 	
 		StringBuilder sb = new StringBuilder();
-		sb.append(LogReader.treatment);
+		sb.append(PredLkAnalysis.treatment);
 		sb.append("\n");
 		for (int i = 0; i < numModels; i++) {
 			sb.append(String.format("'%s',", modelNames.get(i)));
@@ -323,5 +322,7 @@ public class PredLkAnalysis {
 				"E yyyy.MM.dd 'at' hh:mm:ss a zzz");
 		System.out.println("Current Date: " + ft.format(now));
 	}
+
+
 
 }

@@ -88,7 +88,7 @@ public class LogReaderTest {
 	@Test
 	public void testGetExpectedPayoff() {
 
-		LogReader.treatment = "prior2-basic";
+		PredLkAnalysis.treatment = "prior2-basic";
 
 		double pay = LearningModelsExisting.getExpectedPayoff("MM", 2);
 		assertEquals(1.5, pay, Utils.eps);
@@ -196,14 +196,14 @@ public class LogReaderTest {
 		String[] reports = new String[] { "MM", "GB", "GB" };
 
 		// treatment 1
-		LogReader.treatment = "prior2-basic";
+		PredLkAnalysis.treatment = "prior2-basic";
 		int[] refPlayerIndices = new int[reports.length];
 		double[] payoffs = new double[reports.length];
 		determinePayoff(reports, refPlayerIndices, payoffs);
 
 		double[] expectedPayoffs = new double[reports.length];
 		for (int i = 0; i < expectedPayoffs.length; i++) {
-			expectedPayoffs[i] = Utils.getPayment(LogReader.treatment,
+			expectedPayoffs[i] = Utils.getPayment(PredLkAnalysis.treatment,
 					reports[i], reports[refPlayerIndices[i]]);
 		}
 		for (int i = 0; i < payoffs.length; i++) {
@@ -211,11 +211,11 @@ public class LogReaderTest {
 		}
 
 		// treatment 2
-		LogReader.treatment = "prior2-outputagreement";
+		PredLkAnalysis.treatment = "prior2-outputagreement";
 		payoffs = LogReaderTest.determinePayoff(reports, refPlayerIndices, null);
 		expectedPayoffs = new double[reports.length];
 		for (int i = 0; i < expectedPayoffs.length; i++) {
-			expectedPayoffs[i] = Utils.getPayment(LogReader.treatment,
+			expectedPayoffs[i] = Utils.getPayment(PredLkAnalysis.treatment,
 					reports[i], reports[refPlayerIndices[i]]);
 		}
 		for (int i = 0; i < payoffs.length; i++) {
@@ -227,7 +227,7 @@ public class LogReaderTest {
 	@Test
 	public void testGetStrategyRL() {
 	
-		LogReader.treatment = "prior2-basic";
+		PredLkAnalysis.treatment = "prior2-basic";
 		LogReader.parseDB();
 	
 		String[] playerHitIds = new String[LogReader.expSet.numPlayers];
@@ -343,7 +343,7 @@ public class LogReaderTest {
 	@Test
 	public void testS1() {
 		int numGames = 400;
-		LogReader.treatment = "prior2-basic";
+		PredLkAnalysis.treatment = "prior2-basic";
 		LogReader.parseDB();
 		
 		int numTests = 3;
@@ -363,7 +363,7 @@ public class LogReaderTest {
 			double expEps = 0.1 * rand.nextDouble();
 			double[] point = new double[]{expProbTruthful, expProbMM, expProbGB, expProbOP, expEps};
 			
-			Map<String, Object> params = LearningModelsCustom.pointToMap(model, point);
+			Map<String, Object> params = LearningModelsCustom.oPointToMap(model, point);
 			
 			testS1Helper(numGames, params, model);
 		}
@@ -373,7 +373,7 @@ public class LogReaderTest {
 	@Test
 	public void testS3Abs() {
 		int numGames = 300;
-		LogReader.treatment = "prior2-basic";
+		PredLkAnalysis.treatment = "prior2-basic";
 		LogReader.parseDB();
 		
 		int numTests = 3;
@@ -395,7 +395,7 @@ public class LogReaderTest {
 			double expDelta = 5;
 			double[] point = new double[] { expProbTR, expProbMM, expProbGB, expProbOP, expEps, expDelta };
 
-			Map<String, Object> params = LearningModelsCustom.pointToMap(model, point);
+			Map<String, Object> params = LearningModelsCustom.oPointToMap(model, point);
 
 			testS3Helper(numGames, params, model);
 		}
@@ -405,7 +405,7 @@ public class LogReaderTest {
 	@Test
 	public void testS3Rel() {
 		int numGames = 300;
-		LogReader.treatment = "prior2-basic";
+		PredLkAnalysis.treatment = "prior2-basic";
 		LogReader.parseDB();
 		
 		int numTests = 3;
@@ -426,7 +426,7 @@ public class LogReaderTest {
 			double expDelta = 5;
 			double[] point = new double[] { expProbTR, expProbMM, expProbGB, expProbOP, expEps, expDelta };
 	
-			Map<String, Object> params = LearningModelsCustom.pointToMap(model, point);
+			Map<String, Object> params = LearningModelsCustom.oPointToMap(model, point);
 			
 			testS3Helper(numGames, params, model);
 		}
@@ -437,7 +437,7 @@ public class LogReaderTest {
 	@Test
 	public void testRL() {
 		int numGames = 300;
-		LogReader.treatment = "prior2-uniquetruthful";
+		PredLkAnalysis.treatment = "prior2-uniquetruthful";
 		LogReader.parseDB();
 
 		// Test 1
@@ -467,7 +467,7 @@ public class LogReaderTest {
 	@Test
 	public void testSFP() {
 		int numGames = 200;
-		LogReader.treatment = "prior2-basic";
+		PredLkAnalysis.treatment = "prior2-basic";
 		LogReader.parseDB();
 	
 		// test 1
@@ -497,7 +497,7 @@ public class LogReaderTest {
 	@Test
 	public void testEWA() {
 		int numGames = 400;
-		LogReader.treatment = "prior2-basic";
+		PredLkAnalysis.treatment = "prior2-basic";
 		LogReader.parseDB();
 	
 		// test 1
@@ -551,12 +551,12 @@ public class LogReaderTest {
 		System.out.printf("Expected loglk = %.2f\n", loglkExp);
 		
 		// estimate model
-		double[] point = LearningModelsCustom.setRandomStartPoint(model);
+		double[] point = LearningModelsCustom.oSetRandomStartPoint(model);
 		point[5] = (double) params.get("delta");
 		point = LearningModelsCustom.estimateUsingCobyla(model, games);
 
 		System.out.printf("Actual parameters: ");
-		Utils.printParams(LearningModelsCustom.pointToMap(model, point));
+		Utils.printParams(LearningModelsCustom.oPointToMap(model, point));
 				
 		assertEquals((double) params.get("probTR"), point[0], 0.1);
 		assertEquals((double) params.get("probMM"), point[1], 0.1);
@@ -580,7 +580,7 @@ public class LogReaderTest {
 		
 		// estimate model
 		double[] point = LearningModelsCustom.estimateUsingCobyla(model, games);
-		Map<String, Object> actualParams = LearningModelsCustom.pointToMap(model, point);
+		Map<String, Object> actualParams = LearningModelsCustom.oPointToMap(model, point);
 		System.out.printf("Actual parameters: ");
 		Utils.printParams(actualParams);
 		
@@ -835,7 +835,7 @@ public class LogReaderTest {
 				actualPayoffs[j] = actualPayoffs[j] + payoffs[j];
 				List<Double> hypoPayoffs = hypoPayoffMap.get(playerId);
 				LearningModelsCustom.updateHypoPayoffsS3(hypoPayoffs, playerId,
-						signals[j], r, LogReader.treatment);
+						signals[j], r, PredLkAnalysis.treatment);
 	
 			}
 			
@@ -1161,19 +1161,19 @@ public class LogReaderTest {
 	static double[] determinePayoff(String[] reports,
 			int[] refPlayerIndices, double[] payoffs) {
 	
-		if (LogReader.treatment.equals("prior2-basic")
-				|| LogReader.treatment.equals("prior2-outputagreement")) {
+		if (PredLkAnalysis.treatment.equals("prior2-basic")
+				|| PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 	
 			for (int j = 0; j < reports.length; j++) {
 	
 				String myReport = reports[j];
 				refPlayerIndices[j] = Utils.chooseRefPlayer(j);
 				String refReport = reports[refPlayerIndices[j]];
-				payoffs[j] = Utils.getPayment(LogReader.treatment, myReport, refReport);
+				payoffs[j] = Utils.getPayment(PredLkAnalysis.treatment, myReport, refReport);
 			}
 	
-		} else if (LogReader.treatment.equals("prior2-uniquetruthful")
-				|| LogReader.treatment.equals("prior2-symmlowpay")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")
+				|| PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 	
 			int totalNumMM = 0;
 			for (int j = 0; j < reports.length; j++) {
@@ -1186,7 +1186,7 @@ public class LogReaderTest {
 				int numOtherMMReports = totalNumMM;
 				if (myReport.equals("MM"))
 					numOtherMMReports = totalNumMM - 1;
-				payoffs[j] = Utils.getPayment(LogReader.treatment, myReport,
+				payoffs[j] = Utils.getPayment(PredLkAnalysis.treatment, myReport,
 						numOtherMMReports);
 			}
 	
@@ -1204,8 +1204,8 @@ public class LogReaderTest {
 			playerResult.put("signal", signals[j]);
 			playerResult.put("report", reports[j]);
 
-			if (LogReader.treatment.equals("prior2-basic")
-					|| LogReader.treatment.equals("prior2-outputagreement")) {
+			if (PredLkAnalysis.treatment.equals("prior2-basic")
+					|| PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 
 				String refPlayerId = String.format("%d", refPlayerIndices[j]);
 				playerResult.put("refPlayer", refPlayerId);
@@ -1221,7 +1221,7 @@ public class LogReaderTest {
 
 	@Test
 	public void testGetLkStrategy() {
-		LogReader.treatment = "prior2-basic";
+		PredLkAnalysis.treatment = "prior2-basic";
 		LogReader.parseDB();
 		
 		testGetLkStrategyHelper("TR");
@@ -1236,12 +1236,12 @@ public class LogReaderTest {
 		Game g = simulateGameWithPureStrategy(strategy);
 		int roundStart = 4;
 		int roundEnd = 7;
-		double strError = Utils.eps;
+		double eps = Utils.eps;
 		String playerId = "0";
-		double lk = LearningModelsCustom.helperGetLkStrategy(g, playerId, roundStart, roundEnd, strategy, strError, null);
+		double lk = LearningModelsCustom.helperGetLkStrategy(g, playerId, roundStart, roundEnd, strategy, eps, null);
 		assertEquals(Math.pow(1 - Utils.eps, roundEnd - roundStart), lk, Utils.eps);
 		
-		double lkRandom = LearningModelsCustom.helperGetLkStrategy(g, playerId, roundStart, roundEnd, "RA", strError, null);
+		double lkRandom = LearningModelsCustom.helperGetLkStrategy(g, playerId, roundStart, roundEnd, "RA", eps, null);
 		assertEquals(Math.pow(0.5, roundEnd - roundStart), lkRandom, Utils.eps);
 	}
 

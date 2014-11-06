@@ -9,7 +9,7 @@ public class LearningModelsTest {
 
 	@Before
 	public void setUp() {
-		LogReader.treatment = "prior2-basic";
+		PredLkAnalysis.treatment = "prior2-basic";
 		LogReader.parseDB();
 	}
 	

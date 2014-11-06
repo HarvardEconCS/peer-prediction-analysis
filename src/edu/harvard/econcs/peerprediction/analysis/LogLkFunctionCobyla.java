@@ -15,7 +15,7 @@ public class LogLkFunctionCobyla implements Calcfc {
 	public LogLkFunctionCobyla(List<Game> g, String mod) {
 		games = g;
 		model = mod;
-		penCoeff = 2;
+		penCoeff = 1e5;
 	}
 
 	/**
@@ -35,16 +35,46 @@ public class LogLkFunctionCobyla implements Calcfc {
 			con[1] = point[1];
 			con[2] = point[2];
 			con[3] = point[3];
-			con[4] = 1.0 - point[0] - point[1] - point[2] - point[3];
-			con[5] = point[4];
-			con[6] = LearningModelsCustom.getUBCobyla(model, "eps") - point[4];
-			con[7] = point[5] - LearningModelsCustom.getLBCobyla(model, "delta");
-			con[8] = LearningModelsCustom.getUBCobyla(model, "delta") - point[5];
 
-			params = LearningModelsCustom.pointToMap(model, point);
-			loglk = LearningModelsCustom.computeLogLkS3(params, games);
-			loglk = addPenaltyTermsS3(point, loglk);
+			con[4] = point[4] - LearningModelsCustom.getLBCobyla(model, "eps");
+			con[5] = LearningModelsCustom.getUBCobyla(model, "eps") - point[4];
 			
+			con[6] = point[5] - LearningModelsCustom.getLBCobyla(model, "delta");
+			con[7] = LearningModelsCustom.getUBCobyla(model, "delta") - point[5];
+			
+			con[8] = 1.0 - point[0] - point[1] - point[2] - point[3];
+
+			params = LearningModelsCustom.oPointToMap(model, point);
+			loglk = LearningModelsCustom.computeLogLk(model, params, games);
+			loglk = oAddPenaltyTerms(model, point, loglk);
+			
+		} else if (model.startsWith("s2")) {
+			
+			// constraints
+			con[0] = point[0];
+			con[1] = point[1];
+			con[2] = point[2];
+			con[3] = point[3];
+			
+			con[4] = point[4] - LearningModelsCustom.getLBCobyla(model, "eps");
+			con[5] = LearningModelsCustom.getUBCobyla(model, "eps") - point[4];
+			
+			con[6] = point[5] - LearningModelsCustom.getLBCobyla(model, "delta");
+			con[7] = LearningModelsCustom.getUBCobyla(model, "delta") - point[5];
+			
+			con[8] = point[6];
+			con[9] = 1.0 - point[6];
+			con[10] = point[7];
+			con[11] = 1.0 - point[7];
+			
+			con[12] = point[8];
+			
+			con[13] = 1.0 - point[0] - point[1] - point[2] - point[3] - point[8];
+
+			params = LearningModelsCustom.oPointToMap(model, point);
+			loglk = LearningModelsCustom.computeLogLk(model, params, games);
+			loglk = oAddPenaltyTerms(model, point, loglk);
+
 		} else if (model.equals("s1-1")) {
 			
 			double epsUB = LearningModelsCustom.getUBCobyla(model, "eps");
@@ -55,17 +85,28 @@ public class LogLkFunctionCobyla implements Calcfc {
 			con[1] = point[1];
 			con[2] = point[2];
 			con[3] = point[3];
-			con[4] = 1.0 - point[0] - point[1] - point[2] - point[3];
-			con[5] = point[4] - epsLB;
-			con[6] = epsUB - point[4];
-			con[7] = point[5];
-			con[8] = 1.0 - point[5];
-			con[9] = point[6];
-			con[10] = 1.0 - point[6];
+			
+			con[4] = point[4] - epsLB;
+			con[5] = epsUB - point[4];
+			
+			con[6] = point[5];
+			con[7] = 1.0 - point[5];
+			con[8] = point[6];
+			con[9] = 1.0 - point[6];
+			
+			con[10] = point[7] - 0.5;
+			con[11] = 1.0 - point[7];
+			con[12] = point[8] - 0.5;
+			con[13] = 1.0 - point[8];
 
-			params = LearningModelsCustom.pointToMap(model, point);
-			loglk = LearningModelsCustom.computeLogLkS1Dash1(params, games);
-			loglk = addPenaltyTermsS1Dash1(point, loglk);
+			con[14] = point[7] - point[5];
+			con[15] = point[8] - point[6];
+
+			con[16] = 1.0 - point[0] - point[1] - point[2] - point[3];
+
+			params = LearningModelsCustom.oPointToMap(model, point);
+			loglk = LearningModelsCustom.computeLogLk(model, params, games);
+			loglk = oAddPenaltyTerms(model, point, loglk);
 			
 		} else if (model.equals("s1")) {
 			
@@ -77,13 +118,13 @@ public class LogLkFunctionCobyla implements Calcfc {
 			con[1] = point[1];
 			con[2] = point[2];
 			con[3] = point[3];
-			con[4] = 1.0 - point[0] - point[1] - point[2] - point[3];
-			con[5] = point[4] - epsLB;
-			con[6] = epsUB - point[4];
+			con[4] = point[4] - epsLB;
+			con[5] = epsUB - point[4];
+			con[6] = 1.0 - point[0] - point[1] - point[2] - point[3];
 
-			params = LearningModelsCustom.pointToMap(model, point);
-			loglk = LearningModelsCustom.computeLogLkS1(params, games);
-			loglk = addPenaltyTermsS1(point, loglk);
+			params = LearningModelsCustom.oPointToMap(model, point);
+			loglk = LearningModelsCustom.computeLogLk(model, params, games);
+			loglk = oAddPenaltyTerms(model, point, loglk);
 
 		} else if (model.equals("SFPS")) {
 
@@ -116,7 +157,49 @@ public class LogLkFunctionCobyla implements Calcfc {
 		return -loglk; // because we are doing minimization
 	}
 
+	private double oAddPenaltyTerms(String model, double[] point, double loglk) {
+		if (model.startsWith("s2")) {
+			return addPenaltyTermsS2(point, loglk);
+		} else if (model.startsWith("s3")) {
+			return addPenaltyTermsS3(point, loglk);
+		} else if (model.equals("s1-1")) {
+			return addPenaltyTermsS1Dash1(point, loglk);
+		} else if (model.equals("s1")) {
+			return addPenaltyTermsS1(point, loglk);
+		}
+		return 0;
+	}
+
+	private double addPenaltyTermsS2(double[] point, double loglk) {
+		
+		double logLK = addPenaltyTermsStrategies(point, loglk);
+		logLK = addPenaltyTermsStrategies2(point, logLK);
+		logLK = addPenaltyTermsSumV2(point, logLK);
+		logLK = addPenaltyTermsEps(point, logLK);
+		logLK = addPenaltyTermsDelta(point, logLK);
+		
+		if (point[6] < 0)
+			logLK = logLK - penCoeff * Math.pow(0.0 - point[6], 2);
+		if (point[6] > 1)
+			logLK = logLK - penCoeff * Math.pow(point[6] - 1.0, 2);
+		if (point[7] < 0)
+			logLK = logLK - penCoeff * Math.pow(0.0 - point[7], 2);
+		if (point[7] > 1)
+			logLK = logLK - penCoeff * Math.pow(point[7] - 1.0, 2);
+		
+		return logLK;
+	}
+
+	private double addPenaltyTermsS3(double[] point, double loglk) {
+		
+		double logLK = addPenaltyTermsS1(point, loglk);
+		logLK = addPenaltyTermsDelta(point, logLK);
+
+		return logLK;
+	}
+
 	private double addPenaltyTermsS1Dash1(double[] point, double loglk) {
+		
 		double logLK = addPenaltyTermsS1(point, loglk);
 		
 		if (point[5] < 0)
@@ -127,12 +210,40 @@ public class LogLkFunctionCobyla implements Calcfc {
 			logLK = logLK - penCoeff * Math.pow(0.0 - point[6], 2);
 		if (point[6] > 1)
 			logLK = logLK - penCoeff * Math.pow(point[6] - 1.0, 2);
+		
+//		if (1 - point[4] - point[5] < 0)
+//			logLK = logLK - penCoeff * Math.pow(point[5] - (1 - point[4]), 2);
+//		if (point[6] - (1 - point[4]) < 0) 
+//			logLK = logLK - penCoeff * Math.pow((1 - point[4]) - point[6], 2);
 	
+		if (point[7] < 0)
+			logLK = logLK - penCoeff * Math.pow(0.0 - point[7], 2);
+		if (point[7] > 1)
+			logLK = logLK - penCoeff * Math.pow(point[7] - 1.0, 2);
+		if (point[8] < 0)
+			logLK = logLK - penCoeff * Math.pow(0.0 - point[8], 2);
+		if (point[8] > 1)
+			logLK = logLK - penCoeff * Math.pow(point[8] - 1.0, 2);
+
+		if (point[7] < point[5])
+			logLK = logLK - penCoeff * Math.pow(point[5] - point[7], 2);
+		if (point[8] < point[6])
+			logLK = logLK - penCoeff * Math.pow(point[6] - point[8], 2);
+		
 		return logLK;
 	}
 
 	private double addPenaltyTermsS1(double[] point, double loglk) {
 		
+		double logLK = addPenaltyTermsStrategies(point, loglk);
+		logLK = addPenaltyTermsSumV1(point, logLK);
+		logLK = addPenaltyTermsEps(point, logLK);
+		
+		return logLK;
+	}
+
+	private double addPenaltyTermsStrategies(double[] point, double logLK) {
+		double loglk = logLK;
 		if (point[0] < 0)
 			loglk = loglk - penCoeff * Math.pow(0 - point[0], 2);
 		if (point[1] < 0)
@@ -141,25 +252,52 @@ public class LogLkFunctionCobyla implements Calcfc {
 			loglk = loglk - penCoeff * Math.pow(0 - point[2], 2);
 		if (point[3] < 0)
 			loglk = loglk - penCoeff * Math.pow(0 - point[3], 2);
-		
+		return logLK;
+	}
+
+	private double addPenaltyTermsStrategies2(double[] point, double logLK) {
+		double loglk = logLK;
+		if (point[8] < 0)
+			loglk = loglk - penCoeff * Math.pow(0 - point[8], 2);
+		return loglk;		
+	}
+	
+	private double addPenaltyTermsSumV1(double[] point, double logLK) {
+		double loglk = logLK;
 		if (point[0] + point[1] + point[2] + point[3] > 1)
 			loglk = loglk - penCoeff * Math.pow(point[0] + point[1] + point[2] + point[3] - 1, 2);
+		return loglk;
+	}
 
+	private double addPenaltyTermsSumV2(double[] point, double logLK) {
+		double loglk = logLK;
+		if (point[0] + point[1] + point[2] + point[3] + point[8] > 1)
+			loglk = loglk - penCoeff * Math.pow(point[0] + point[1] + point[2] + point[3] + point[8] - 1, 2);
+		return loglk;
+	}
+
+	private double addPenaltyTermsEps(double[] point, double logLK) {
+		double loglk = logLK;
+		
 		double epsUB = LearningModelsCustom.getUBCobyla(model, "eps");
 		double epsLB = LearningModelsCustom.getLBCobyla(model, "eps");
 		if (point[4] < epsLB)
 			loglk = loglk - penCoeff * Math.pow(epsLB - point[4], 2);
 		if (point[4] > epsUB)
 			loglk = loglk - penCoeff * Math.pow(point[4] - epsUB, 2);
-		
 		return loglk;
 	}
 
-	private double addPenaltyTermsS3(double[] point, double loglk) {
-		double logLK = addPenaltyTermsS1(point, loglk);
-		if (point[5] < LearningModelsCustom.getLBCobyla(model, "delta"))
-			logLK = logLK - penCoeff * Math.pow(LearningModelsCustom.getLBCobyla(model, "delta") - point[5], 2);
-		return logLK;
+	private double addPenaltyTermsDelta(double[] point, double logLK) {
+		double loglk = logLK;
+		
+		double deltaLB = LearningModelsCustom.getLBCobyla(model, "delta");
+		double deltaUB = LearningModelsCustom.getUBCobyla(model, "delta");
+		if (point[5] < deltaLB)
+			loglk = loglk - penCoeff * Math.pow(deltaLB - point[5], 2);
+		if (point[5] > deltaUB)
+			loglk = loglk - penCoeff * Math.pow(point[5] - deltaLB, 2);
+		return loglk;
 	}
 
 	public void squarePenCoeff() {

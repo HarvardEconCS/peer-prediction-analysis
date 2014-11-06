@@ -46,8 +46,8 @@ public class LearningModelsExisting {
 	
 				// if first two treatments, add LogLk for reward except last
 				// round
-				if (LogReader.treatment.equals("prior2-basic")
-						|| LogReader.treatment.equals("prior2-outputagreement")) {
+				if (PredLkAnalysis.treatment.equals("prior2-basic")
+						|| PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 	
 					if (i != LogReader.expSet.numRounds - 1) {
 	
@@ -135,8 +135,8 @@ public class LearningModelsExisting {
 				Map<String, Map<String, Object>> resultCurrRound = game.rounds
 						.get(i).result;
 	
-				if (LogReader.treatment.equals("prior2-basic")
-						|| LogReader.treatment.equals("prior2-outputagreement")) {
+				if (PredLkAnalysis.treatment.equals("prior2-basic")
+						|| PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 	
 					// add LogLk for reward except last round
 					if (i != LogReader.expSet.numRounds - 1) {
@@ -240,8 +240,8 @@ public class LearningModelsExisting {
 				Map<String, Map<String, Object>> resultCurrRound = game.rounds
 						.get(i).result;
 	
-				if (LogReader.treatment.equals("prior2-basic")
-						|| LogReader.treatment.equals("prior2-outputagreement")) {
+				if (PredLkAnalysis.treatment.equals("prior2-basic")
+						|| PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 	
 					// add LogLk for reward except last round
 					if (i != LogReader.expSet.numRounds - 1) {
@@ -462,21 +462,21 @@ public class LearningModelsExisting {
 
 	public static double getExpectedPayoff(String report, int numOtherMMReports) {
 	
-		if (LogReader.treatment.equals("prior2-basic")
-				|| LogReader.treatment.equals("prior2-outputagreement")) {
+		if (PredLkAnalysis.treatment.equals("prior2-basic")
+				|| PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 	
 			if (numOtherMMReports == 2) {
-				return Utils.getPayment(LogReader.treatment, report, "MM");
+				return Utils.getPayment(PredLkAnalysis.treatment, report, "MM");
 			} else if (numOtherMMReports == 0) {
-				return Utils.getPayment(LogReader.treatment, report, "GB");
+				return Utils.getPayment(PredLkAnalysis.treatment, report, "GB");
 			} else if (numOtherMMReports == 1) {
-				return 0.5 * Utils.getPayment(LogReader.treatment, report, "MM") + 0.5
-						* Utils.getPayment(LogReader.treatment, report, "GB");
+				return 0.5 * Utils.getPayment(PredLkAnalysis.treatment, report, "MM") + 0.5
+						* Utils.getPayment(PredLkAnalysis.treatment, report, "GB");
 			}
 	
-		} else if (LogReader.treatment.equals("prior2-uniquetruthful")
-				|| LogReader.treatment.equals("prior2-symmlowpay")) {
-			return Utils.getPayment(LogReader.treatment, report, numOtherMMReports);
+		} else if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")
+				|| PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
+			return Utils.getPayment(PredLkAnalysis.treatment, report, numOtherMMReports);
 		}
 	
 		return -1;
@@ -526,7 +526,7 @@ public class LearningModelsExisting {
 				1e-10, true, 1, 1, random, false, checker);
 	
 		// starting point
-		double[] startPoint = LearningModelsCustom.setRandomStartPoint(model);
+		double[] startPoint = LearningModelsCustom.oSetRandomStartPoint(model);
 	
 		double[] point = startPoint;
 		boolean shouldStop = false;
@@ -546,19 +546,19 @@ public class LearningModelsExisting {
 				e.printStackTrace();
 				System.exit(0);
 				shouldStop = false;
-				startPoint = LearningModelsCustom.setRandomStartPoint(model);
+				startPoint = LearningModelsCustom.oSetRandomStartPoint(model);
 				continue;
 			}
 	
 			point = optimum.getPoint();
 			// System.out.println(Arrays.toString(point));
 	
-			if (!LearningModelsCustom.constraintsViolated(model, point)) {
+			if (!LearningModelsCustom.oConstraintsViolated(model, point)) {
 				System.out.println("constraints violated");
 				shouldStop = true;
 			} else {
 				function.squarePenCoeff();
-				startPoint = LearningModelsCustom.setRandomStartPoint(model);
+				startPoint = LearningModelsCustom.oSetRandomStartPoint(model);
 			}
 		}
 	

@@ -28,13 +28,7 @@ public class LogReader {
 	static String dbClass = "com.mysql.jdbc.Driver";
 	static String setId = "vary-payment";
 	
-	 static String treatment = "prior2-basic";
-//	 static String treatment = "prior2-outputagreement";
-//	 static String treatment = "prior2-uniquetruthful";
-//	 static String treatment = "prior2-symmlowpay";
-//	 static String treatment = "prior2-constant";
-
-	static Experiment expSet;
+	 static Experiment expSet;
 
 //	public static void main(String[] args) throws Exception {
 //
@@ -57,8 +51,8 @@ public class LogReader {
 	public static void parseDB() {
 		System.out.println("Parsing mysql database");
 
-		if (treatment.equals("prior2-constant")
-				|| treatment.equals("prior2-symmlowpay"))
+		if (PredLkAnalysis.treatment.equals("prior2-constant")
+				|| PredLkAnalysis.treatment.equals("prior2-symmlowpay"))
 			MatchStrings.choseReport = MatchStrings.chosenReport1;
 		else
 			MatchStrings.choseReport = MatchStrings.chosenReport2;
@@ -91,7 +85,7 @@ public class LogReader {
 			// get total number of games
 			String numGameQuery = String
 					.format("select count(*) from experiment where setId='%s' and inputdata='%s'",
-							setId, treatment);
+							setId, PredLkAnalysis.treatment);
 			Statement numGameStmt = con.createStatement();
 			ResultSet numGameRS = numGameStmt.executeQuery(numGameQuery);
 			numGameRS.next();
@@ -101,7 +95,7 @@ public class LogReader {
 					.format("select * from experiment "
 							+ "where setId='%s' and inputdata = '%s' "
 							+ "and id not in (select distinct experimentId from round where results like '%%killed%%')",
-							setId, treatment);
+							setId, PredLkAnalysis.treatment);
 			expStmt = con.createStatement();
 			expRS = expStmt.executeQuery(expQuery);
 
@@ -248,8 +242,8 @@ public class LogReader {
 					res.put("signal", resultArray[0]);
 					res.put("report", resultArray[1]);
 					
-					if (treatment.equals("prior2-basic")
-							|| treatment.equals("prior2-outputagreement")) {
+					if (PredLkAnalysis.treatment.equals("prior2-basic")
+							|| PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 						res.put("refPlayer", resultArray[2]);
 					}
 					
@@ -263,22 +257,22 @@ public class LogReader {
 							.toString();
 
 					Object refInfo = null;
-					if (treatment.equals("prior2-basic")
-							|| treatment.equals("prior2-outputagreement")) {
+					if (PredLkAnalysis.treatment.equals("prior2-basic")
+							|| PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 						String refPlayer = round.result.get(playerId)
 								.get("refPlayer").toString();
 						String refReport = round.result.get(refPlayer)
 								.get("report").toString();
 						refInfo = refReport;
-					} else if (treatment.equals("prior2-uniquetruthful")
-							|| treatment.equals("prior2-symmlowpay")) {
+					} else if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")
+							|| PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 						int numMM = Utils.getNumOfGivenReport(round.result,
 								"MM", playerId);
 						refInfo = numMM;
 					}
 
 					double reward = Utils
-							.getPayment(treatment, report, refInfo);
+							.getPayment(PredLkAnalysis.treatment, report, refInfo);
 					round.result.get(playerId).put("reward", reward);
 				}
 				
@@ -329,8 +323,8 @@ public class LogReader {
 					String signal = r.getSignal(hitId);
 					String report = r.getReport(hitId);
 
-					if (treatment.equals("prior2-basic")
-							|| treatment.equals("prior2-outputagreement")) {
+					if (PredLkAnalysis.treatment.equals("prior2-basic")
+							|| PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 						// Treatments 1 and 2, write reference player
 						String refPlayer = (String) r.getRefPlayer(hitId);
 						writer.write(String.format("(%s,%s,%d)", signal,
@@ -349,35 +343,35 @@ public class LogReader {
 			}
 		}
 
-		if (treatment.equals("prior2-basic")) {
+		if (PredLkAnalysis.treatment.equals("prior2-basic")) {
 			writer.write("Payment rule:\n"
 					+ "Each player's payoff depends on the player's report and the report of "
 					+ "another player randomly chosen among all other players, as follows:\n"
 					+ "(MM, MM) = 1.5, (MM, GB) = 0.1, (GB, GB) = 1.2, (GB, MM) = 0.3\n"
 					+ "where (A, B) = X denotes that if a player P's report is A, P's reference report is B, "
 					+ "then P's payoff is X.\n\n");
-		} else if (treatment.equals("prior2-outputagreement")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-outputagreement")) {
 			writer.write("Payment rule:\n"
 					+ "Each player's payoff depends on the player's report and the report of "
 					+ "another player randomly chosen among all other players, as follows:\n"
 					+ "(MM, MM) = 1.5, (MM, GB) = 0.1, (GB, GB) = 1.5, (GB, MM) = 0.1\n"
 					+ "where (A, B) = X denotes that if player P's report is A, P's reference report is B, "
 					+ "then P's payoff is X.\n\n");
-		} else if (treatment.equals("prior2-uniquetruthful")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 			writer.write("Payment rule:\n"
 					+ "Each player's payoff depends on the player's report and all the other reports, as follows:\n"
 					+ "(MM, 3) = 0.8, (MM, 2) = 1.5, (MM, 1) = 0.1, (MM, 0) = 0.9, \n"
 					+ "(GB, 3) = 0.9, (GB, 2) = 0.1, (GB, 1) = 1.5, (GB, 0) = 0.8, \n"
 					+ "where (A, B) = X denotes that if player P's report is A, B of the other 3 reports are MM, "
 					+ "then P's payoff is X.\n\n");
-		} else if (treatment.equals("prior2-symmlowpay")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 			writer.write("Payment rule:\n"
 					+ "Each player's payoff depends on the player's report and all the other reports, as follows:\n"
 					+ "(MM, 3) = 0.15, (MM, 2) = 1.50, (MM, 1) = 0.10, (MM, 0) = 0.10, \n"
 					+ "(GB, 3) = 0.10, (GB, 2) = 0.15, (GB, 1) = 0.90, (GB, 0) = 0.15, \n"
 					+ "where (A, B) = X denotes that if player P's report is A, B of the other 3 reports are MM, "
 					+ "then P's payoff is X.\n\n");
-		} else if (treatment.equals("prior2-constant")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-constant")) {
 			writer.write("Payment rule:\n"
 					+ "Every player gets 0.90 for every round.\n\n");
 		}
@@ -535,8 +529,8 @@ public class LogReader {
 
 				if (matcherReport.matches()) {
 
-					if (treatment.equals("prior2-constant")
-							|| treatment.equals("prior2-symmlowpay")) {
+					if (PredLkAnalysis.treatment.equals("prior2-constant")
+							|| PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 						String radio = matcherReport.group(5);
 						r.saveRadio(radio);
 					}
@@ -650,7 +644,7 @@ public class LogReader {
 //				+ "Prior worlds: %s\n"
 				+ "numPlayers per game: %d\n"
 				+ "numRounds: %d\n\n", 
-				treatment, 
+				PredLkAnalysis.treatment, 
 				expSet.numGames,
 				expSet.nonKilledGames, 
 //				Arrays.toString(expSet.priorProbs),
@@ -744,7 +738,7 @@ public class LogReader {
 								+ "hBar = bar(0:%d, [MMsignalsGBreports MMsignalsMMreports  GBsignalsGBreports GBsignalsMMreports], "
 								+ "'BarWidth', 0.7, 'BarLayout', 'stack', 'LineStyle', 'none');\n"
 								+ "box off;\n", expSet.numRounds - 1));
-		if (treatment.equals("prior2-constant")) {
+		if (PredLkAnalysis.treatment.equals("prior2-constant")) {
 			writerMatlab.write("set(fH, 'Position', [300, 300, 800, 400]);\n"
 					+ "set(gca,'Position',[.1 .15 .88 .8]);\n");
 		} else {
@@ -762,7 +756,7 @@ public class LogReader {
 						+ "axes = findobj(gcf,'type','axes');\n"
 						+ "set(axes, 'XTick', [0 19]);\n"
 						+ "set(hBar,{'FaceColor'},{[1 0.27 0];[1 0.64 0];'b';[0.1 0.1 0.4];});\n");
-		if (treatment.equals("prior2-constant")) {
+		if (PredLkAnalysis.treatment.equals("prior2-constant")) {
 			writerMatlab
 					.write("AX=legend('MM signals, GB reports', 'MM signals, MM reports', 'GB signals, GB reports', 'GB signals, MM reports', "
 							+ "'Location', 'BestOutside');\n"

@@ -11,12 +11,12 @@ public class OldEqAnalysis {
 	public static void eqConvergenceSimpleMethod() throws IOException {
 		System.out.println("Equilibrium convergence by simple method");
 	
-		if (LogReader.treatment.equals("prior2-basic")
-				|| LogReader.treatment.equals("prior2-outputagreement")
-				|| LogReader.treatment.equals("prior2-symmlowpay")) {
+		if (PredLkAnalysis.treatment.equals("prior2-basic")
+				|| PredLkAnalysis.treatment.equals("prior2-outputagreement")
+				|| PredLkAnalysis.treatment.equals("prior2-symmlowpay")) {
 			gameSymmetricConvergenceType();
 			// gameSymmetricConvergenceTypeRelaxed(3);
-		} else if (LogReader.treatment.equals("prior2-uniquetruthful")) {
+		} else if (PredLkAnalysis.treatment.equals("prior2-uniquetruthful")) {
 			gameConvergenceTypeT3();
 			// gameAsymmetricConvergenceTypeRelaxed(3);
 		}
