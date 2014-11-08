@@ -12,15 +12,10 @@ public class TeePrintStream extends PrintStream {
         this.second = second;
     }
 
-    /**
-     * Closes the main stream. 
-     * The second stream is just flushed but <b>not</b> closed.
-     * @see java.io.PrintStream#close()
-     */
     @Override
     public void close() {
-        // just for documentation
         super.close();
+//        this.second.close();
     }
 
     @Override

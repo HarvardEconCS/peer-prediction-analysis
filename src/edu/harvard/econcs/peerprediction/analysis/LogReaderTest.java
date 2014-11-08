@@ -547,7 +547,7 @@ public class LogReaderTest {
 		}
 		
 		// expected loglk
-		double loglkExp = LearningModelsCustom.computeLogLkS3(params, games);
+		double loglkExp = LearningModelsCustom.computeLogLk(model, params, games);
 		System.out.printf("Expected loglk = %.2f\n", loglkExp);
 		
 		// estimate model

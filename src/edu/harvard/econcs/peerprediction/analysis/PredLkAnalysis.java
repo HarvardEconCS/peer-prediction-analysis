@@ -31,7 +31,7 @@ public class PredLkAnalysis {
 	//	 static String treatment = "prior2-constant";
 	
 	static int numFolds = 10;
-	static int numRoundsCV = 10;
+	static int numRoundsCV = 1;
 	static double randomLogLk; 
 	static Map<String, List<Double>> avgLogLks;
 
@@ -74,75 +74,71 @@ public class PredLkAnalysis {
 				"%slog-%s-%s.txt", PredLkAnalysis.rootDir, model, ft.format(date)));
 		TeePrintStream tee = new TeePrintStream(f, System.out);
 		System.setOut(tee);
-	
+		
 		System.out.println("Get predictive likelihood for " + model);
 		int groupSize = LogReader.expSet.games.size() / PredLkAnalysis.numFolds;
-		List<Double> loglks = new ArrayList<Double>();
+//		List<Double> loglks = new ArrayList<Double>();
 		DescriptiveStatistics stats = new DescriptiveStatistics();
 	
-		System.out.printf("number of rounds: %d\n", numRoundsCV);
+//		System.out.printf("number of rounds: %d\n", numRoundsCV);
 		System.out.printf("number of folds per round: %d\n", numFolds);
 		
-		for (int l = 0; l < PredLkAnalysis.numRoundsCV; l++) {
+//		for (int l = 0; l < PredLkAnalysis.numRoundsCV; l++) {
 	
-			System.out.printf("Round %d: ", l);
-			stats.clear();
-	
-			Collections.shuffle(LogReader.expSet.games);
-	
-			System.out.println("Folds:");
-			for (int i = 0; i < PredLkAnalysis.numFolds; i++) {
-	
-				System.out.printf("%d: ", i);
-				// System.out.println();
-	
-				// Divide up data into test and training sets
-				List<Game> testSet = new ArrayList<Game>();
-				List<Game> trainingSet = new ArrayList<Game>();
-				int testStart = i * groupSize;
-				for (int j = 0; j < PredLkAnalysis.numFolds * groupSize; j++) {
-					if (j >= testStart && j < testStart + groupSize) {
-						testSet.add(LogReader.expSet.games.get(j));
-					} else {
-						trainingSet.add(LogReader.expSet.games.get(j));
-					}
+//		System.out.printf("Round %d: ", l);
+//		stats.clear();
+
+		Collections.shuffle(LogReader.expSet.games);
+
+//		System.out.println("Folds:");
+		for (int i = 0; i < PredLkAnalysis.numFolds; i++) {
+
+			System.out.printf("Fold %d: ", i);
+
+			// Divide up data into test and training sets
+			List<Game> testSet = new ArrayList<Game>();
+			List<Game> trainingSet = new ArrayList<Game>();
+			int testStart = i * groupSize;
+			for (int j = 0; j < PredLkAnalysis.numFolds * groupSize; j++) {
+				if (j >= testStart && j < testStart + groupSize) {
+					testSet.add(LogReader.expSet.games.get(j));
+				} else {
+					trainingSet.add(LogReader.expSet.games.get(j));
 				}
-	
-				// Estimate best parameters on training set
-				Map<String, Object> bestParam = estimateParams(model,
-						trainingSet);
-				if (!model.equals("HMM"))
-					Utils.printParams(bestParam);
-				double loglk = LearningModelsCustom.computeLogLk(model, bestParam, trainingSet);
-	
-				// Compute loglk on test set
-				double testLoglk = getTestLogLk(model, bestParam, testSet)
-						- randomLogLk;
-				System.out.println(testLoglk);
-				stats.addValue(testLoglk);
-	
-				// System.exit(0);
 			}
-	
-			loglks.add(stats.getMean());
-	
-			System.out.printf(" avgloglk = %.2f", loglks.get(l));
-			System.out.println();
-	
-			// System.exit(0);
+
+			// Estimate best parameters on training set
+			Map<String, Object> bestParam = estimateParams(model, trainingSet);
+			if (!model.equals("HMM"))
+				Utils.printParams(bestParam);
+
+			// Compute loglk on test set
+			double testLoglk = getTestLogLk(model, bestParam, testSet)
+					- randomLogLk;
+			stats.addValue(testLoglk);
+			System.out.println("test loglk = " + testLoglk);
+
 		}
+
+		System.out.printf("avg loglk = %.2f\n", stats.getMean());
+
+//		loglks.add(stats.getMean());
+//		System.out.printf(" avgloglk = %.2f", loglks.get(l));
+//		System.out.println();
 	
-		stats.clear(); 
-		for (int i = 0; i < loglks.size(); i++) {
-			stats.addValue(loglks.get(i));
-		}
-		double mean = stats.getMean();
-		double stdev = stats.getStandardDeviation();
-		double stdError = stdev / Math.sqrt(PredLkAnalysis.numRoundsCV);
-		System.out.printf("avgloglk = %.2f in [%.2f, %.2f]\n", mean,
-				stats.getMean() - 1.96 * stdError, stats.getMean() + 1.96
-						* stdError);
-		avgLogLks.put(model, loglks);
+//		}
+	
+//		stats.clear(); 
+//		for (int i = 0; i < loglks.size(); i++) {
+//			stats.addValue(loglks.get(i));
+//		}
+//		double mean = stats.getMean();
+//		double stdev = stats.getStandardDeviation();
+//		double stdError = stdev / Math.sqrt(PredLkAnalysis.numRoundsCV);
+//		System.out.printf("avgloglk = %.2f in [%.2f, %.2f]\n", mean,
+//				stats.getMean() - 1.96 * stdError, stats.getMean() + 1.96
+//						* stdError);
+//		avgLogLks.put(model, loglks);
 	}
 
 	static Map<String, Object> estimateParams(String model,
@@ -150,7 +146,7 @@ public class PredLkAnalysis {
 	
 		Map<String, Object> params = new HashMap<String, Object>();
 	
-		if (model.startsWith("s3") || model.equals("s2") || model.equals("s1") || model.equals("s1-1")) {
+		if (model.startsWith("s2") || model.startsWith("s3") || model.equals("s1") || model.equals("s1-1")) {
 	
 			double[] point = LearningModelsCustom.estimateUsingCobyla(model, trainingSet);
 			params = LearningModelsCustom.oPointToMap(model, point);
@@ -239,17 +235,9 @@ public class PredLkAnalysis {
 	
 			return LearningModelsExisting.computeLogLkEWA(bestParam, testSet);
 	
-		} else if (model.startsWith("s3")) {
-	
-			return LearningModelsCustom.computeLogLkS3(bestParam, testSet);
-	
-		} else if (model.startsWith("s1")) {
-	
-			return LearningModelsCustom.computeLogLkS1(bestParam, testSet);
-	
-		}  else if (model.startsWith("s1-1")) {
-	
-			return LearningModelsCustom.computeLogLkS1Dash1(bestParam, testSet);
+		} else if (model.startsWith("s2") || model.startsWith("s3") 
+				|| model.equals("s1") || model.equals("s1-1")) {
+			return LearningModelsCustom.computeLogLk(model, bestParam, testSet);
 	
 		}
 	

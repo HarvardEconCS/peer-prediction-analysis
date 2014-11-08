@@ -16,12 +16,16 @@ public class LearningModelsCustom {
 		
 		if (model.startsWith("s2")) {
 			return computeLogLkS2(params, games);
+			
 		} else if (model.startsWith("s3")) {
 			return computeLogLkS3(params, games);
+			
 		} else if (model.startsWith("s1-1")) {
 			return computeLogLkS1Dash1(params, games);
+			
 		} else if (model.equals("s1")) {
 			return computeLogLkS1(params, games);
+			
 		}
 		
 		return Double.NEGATIVE_INFINITY;
@@ -29,10 +33,6 @@ public class LearningModelsCustom {
 	
 	/**
 	 * Model s2
-	 * 
-	 * @param params
-	 * @param games
-	 * @return
 	 */
 	public static double computeLogLkS2(Map<String, Object> params,
 			List<Game> games) {
@@ -46,16 +46,10 @@ public class LearningModelsCustom {
 		double probMM = (double) params.get("probMM");
 		double probGB = (double) params.get("probGB");
 		double probOP = (double) params.get("probOP");
-		double probMixedFixed = (double) params.get("probMixedFixed");
-		double probMixedChange = 1 - probTR - probMM - probGB - probOP - probMixedFixed;
-		if (probTR + probMM + probGB + probOP + probMixedFixed > 1)
-			probMixedChange = 0;
-		
-		double mmGivenMM = (double) params.get("mmGivenMM");
-		double mmGivenGB = (double) params.get("mmGivenGB");
-		List<Double> strParams = new ArrayList<Double>();
-		strParams.add(mmGivenMM);
-		strParams.add(mmGivenGB);
+		double probRA = (double) params.get("probRA");
+		double probRAChange = 1 - probTR - probMM - probGB - probOP - probRA;
+		if (probTR + probMM + probGB + probOP + probRA > 1)
+			probRAChange = 0;
 	
 		double loglk = 0;
 	
@@ -73,9 +67,9 @@ public class LearningModelsCustom {
 					+ probMM * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "MM", eps, null)
 					+ probGB * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "GB", eps, null) 
 					+ probOP * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "OP", eps, null) 
-					+ probMixedFixed * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "CU", eps, strParams)
-					+ probMixedChange * helperGetLkStrategy(game, playerId, 0, roundSwitched, "CU", eps, strParams)
-						* helperGetLkStrategy(game, playerId, roundSwitched, LogReader.expSet.numRounds, newStrategy, eps, strParams);
+					+ probRA * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "RA", eps, null)
+					+ probRAChange * helperGetLkStrategy(game, playerId, 0, roundSwitched, "RA", eps, null)
+						* helperGetLkStrategy(game, playerId, roundSwitched, LogReader.expSet.numRounds, newStrategy, eps, null);
 	
 				loglk += Math.log(lkPlayer);
 			}
@@ -124,7 +118,7 @@ public class LearningModelsCustom {
 				// get round switched and new strategy index
 				int[] switchInfo = getSwitchInfoS3(game, playerId, isAbs, delta);
 				int roundSwitched = switchInfo[0];
-				
+
 				// likelihood before switching
 				double lkBeforeSwitch = 
 						  probTR * helperGetLkStrategy(game, playerId, 0, roundSwitched, "TR", eps, null) 
@@ -132,16 +126,20 @@ public class LearningModelsCustom {
 						+ probGB * helperGetLkStrategy(game, playerId, 0, roundSwitched, "GB", eps, null)
 						+ probOP * helperGetLkStrategy(game, playerId, 0, roundSwitched, "OP", eps, null)
 						+ probRA * helperGetLkStrategy(game, playerId, 0, roundSwitched, "RA", eps, null);  
+
+				if (roundSwitched == LogReader.expSet.numRounds) {
+					// did not switch
+					loglk += Math.log(lkBeforeSwitch);
+				} else {
+					// likelihood after switching
+					int indexNewStrategy = switchInfo[1];
+					String newStrategy = strategyIndexToStringS3(indexNewStrategy);
+					//				System.out.println(roundSwitched + " " + newStrategy);
+					double lkAfterSwitch = helperGetLkStrategy(game, playerId,
+							roundSwitched, LogReader.expSet.numRounds, newStrategy, eps, null);
+					loglk += Math.log(lkBeforeSwitch) + Math.log(lkAfterSwitch); 
+				}
 				
-				// likelihood after switching
-				int indexNewStrategy = switchInfo[1];
-				String newStrategy = strategyIndexToStringS3(indexNewStrategy);
-//				System.out.println(roundSwitched + " " + newStrategy);
-				double lkAfterSwitch = helperGetLkStrategy(game, playerId,
-						roundSwitched, LogReader.expSet.numRounds, newStrategy, eps, null);
-	
-				// add player log likelihood to total log likelihood
-				loglk += Math.log(lkBeforeSwitch) + Math.log(lkAfterSwitch);
 			}
 		}
 	
@@ -422,14 +420,14 @@ public class LearningModelsCustom {
 		int iprint = 0;
 		int maxfun = 10000;
 
-		// set parameters
-		int[] cobylaParams = setCobylaParams(model);
-		int numVariables = cobylaParams[0];
-		int numConstraints = cobylaParams[1];
+		// set parameters {numVariables, numConstraints}
+		int[] cobylaParams = new int[2];
+		oSetCobylaParams(model, cobylaParams);
 
 		// objective function
 		Calcfc function = new LogLkFunctionCobyla(trainingSet, model);
 
+		// num of restarts
 		int numRestarts = 10;
 		if (model.startsWith("s3")) {
 			numRestarts = (int) Math.round(getUBCobyla(model, "delta"));
@@ -446,13 +444,14 @@ public class LearningModelsCustom {
 			point = oSetRandomStartPoint(model);
 			
 			// modify starting point
-			if (model.equals("s1-1")) {
-				point[4] = 0.5 / numRestarts * restartIndex;
-			} else if (model.startsWith("s3")) {
+			if (model.startsWith("s2") || model.startsWith("s3")) {
 				point[5] = getUBCobyla(model, "delta") / numRestarts * restartIndex;
+				
+			} else if (model.equals("s1-1")) {
+				point[4] = 0.5 / numRestarts * restartIndex;
 			}
 			
-			Cobyla.FindMinimum(function, numVariables, numConstraints, point,
+			Cobyla.FindMinimum(function, cobylaParams[0], cobylaParams[1], point,
 					rhobeg, rhoend, iprint, maxfun);
 
 			// if constraints are violated
@@ -460,9 +459,9 @@ public class LearningModelsCustom {
 				((LogLkFunctionCobyla) function).squarePenCoeff();
 				continue;
 			}
-						
+			
 			double loglk = computeLogLk(model, oPointToMap(model, point), trainingSet);
-			System.out.println(oPointToMap(model, point));
+			Utils.printParams(oPointToMap(model, point));
 			if (loglk > bestLogLk) {
 				System.out.printf("loglk = %.2f, better\n", loglk);
 				bestLogLk = loglk;
@@ -477,32 +476,22 @@ public class LearningModelsCustom {
 		return bestPoint;
 	}
 	
-	static int[] setCobylaParams(String model) {
-		
-		int numVariables = 0;
-		int numConstraints = 0;
-		
-		if (model.startsWith("s3")) {
-			
-			numVariables = 6;
-			numConstraints = 9;
-			
-		} else if (model.equals("s2")) {
-			numVariables = 9;
-			numConstraints = 14;
+	static void oSetCobylaParams(String model, int[] cobylaParams) {
+		if (model.startsWith("s2")) {
+			cobylaParams[0] = 7;
+			cobylaParams[1] = 10;
+		} else if (model.startsWith("s3")) {
+			cobylaParams[0] = 6;
+			cobylaParams[1] = 9;
 		} else if (model.equals("s1-1")) {
-			numVariables = 9;
-			numConstraints = 17;
+			cobylaParams[0] = 9;
+			cobylaParams[1] = 17;
 		} else if (model.equals("s1")) {
-			numVariables = 5;
-			numConstraints = 7;
-
+			cobylaParams[0] = 5;
+			cobylaParams[1] = 7;
 		} else if (model.startsWith("SFP") || model.startsWith("RL")) {
-			numVariables = 2;
-			numConstraints = 4;
-
+			cobylaParams = new int[]{2, 4};
 		}
-		return new int[] { numVariables, numConstraints };
 	}
 
 	/**
@@ -513,17 +502,15 @@ public class LearningModelsCustom {
 	static double[] oSetRandomStartPoint(String model) {
 		
 		double[] randomVec5 = Utils.getRandomVec(5);
-		double[] randomVec6 = Utils.getRandomVec(6);
-		
+
 		if (model.startsWith("s2")) {
 
 			double epsStart = Utils.rand.nextDouble() * getUBCobyla(model, "eps");
 			double deltaStart = Utils.rand.nextDouble() * getUBCobyla(model, "delta");
-			double mmGivenMM = Utils.rand.nextDouble();
-			double mmGivenGB = Utils.rand.nextDouble();
+			double[] randomVec6 = Utils.getRandomVec(6);
 			
 			return new double[] { randomVec6[0], randomVec6[1], randomVec6[2], randomVec6[3],
-					epsStart, deltaStart, mmGivenMM, mmGivenGB, randomVec6[4] };
+					epsStart, deltaStart, randomVec6[5] };
 			
 		} else if (model.startsWith("s3")) {
 			
@@ -562,36 +549,36 @@ public class LearningModelsCustom {
 	 */
 	static boolean oConstraintsViolated(String model, double[] point) {
 
-		if (model.equals("s2")) {
+		if (model.startsWith("s2")) {
 			
-			if (point[0] < 0 || point[1] < 0 || point[2] < 0 || point[3] < 0 || point[8] < 0) {
+			if (point[0] < 0 || point[1] < 0 || point[2] < 0 || point[3] < 0 || point[6] < 0) {
 				return true;
 			}
-			if (point[0] + point[1] + point[2] + point[3] + point[8] > 1) {
+			if (point[0] + point[1] + point[2] + point[3] + point[6] > 1) {
 				return true;
 			}
 			
-			if (constraintsViolatedEps(model, point)) return true;
+			// eps
+			if (cvEps(model, point)) return true;
 			
-			if (constraintsViolatedDelta(model, point)) return true;
+			// delta
+			if (cvDelta(model, point)) return true;
 			
-			if (point[6] < 0 || point[6] > 1) 
-				return true;
-			if (point[7] < 0 || point[7] > 1)
-				return true;
 			
 		} else if (model.startsWith("s3")) {
 
-			if (constraintsViolatedStrategiesV1(point)) return true;
-			if (constraintsViolatedEps(model, point)) return true;
-			if (constraintsViolatedDelta(model, point))	return true;
+			// strategies
+			if (cvStrategiesV1(point)) return true;
+			// eps
+			if (cvEps(model, point)) return true;
+			// delta
+			if (cvDelta(model, point))	return true;
 
-			
 		} else if (model.equals("s1-1")) {
 			
-			if (constraintsViolatedStrategiesV1(point)) return true;
+			if (cvStrategiesV1(point)) return true;
 			
-			if (constraintsViolatedEps(model, point)) return true;
+			if (cvEps(model, point)) return true;
 			
 			if (point[5] < 0 || point[5] > 1) 
 				return true;
@@ -615,15 +602,15 @@ public class LearningModelsCustom {
 
 		} else if (model.equals("s1")) {
 			
-			if (constraintsViolatedStrategiesV1(point)) return true;
+			if (cvStrategiesV1(point)) return true;
 			
-			if (constraintsViolatedEps(model, point)) return true;
+			if (cvEps(model, point)) return true;
 
 		}
 		return false;
 	}
 
-	private static boolean constraintsViolatedStrategiesV1(double[] point) {
+	private static boolean cvStrategiesV1(double[] point) {
 		if (point[0] < 0 || point[1] < 0 || point[2] < 0 || point[3] < 0)
 			return true;
 		if (point[0] + point[1] + point[2] + point[3] > 1)
@@ -631,7 +618,7 @@ public class LearningModelsCustom {
 		return false;
 	}
 
-	private static boolean constraintsViolatedEps(String model, double[] point) {
+	private static boolean cvEps(String model, double[] point) {
 		double epsLB = LearningModelsCustom.getLBCobyla(model, "eps");
 		double epsUB = LearningModelsCustom.getUBCobyla(model, "eps");
 		if (point[4] < epsLB || point[4] > epsUB)
@@ -639,7 +626,7 @@ public class LearningModelsCustom {
 		return false;
 	}
 
-	private static boolean constraintsViolatedDelta(String model, double[] point) {
+	private static boolean cvDelta(String model, double[] point) {
 		double deltaLB = LearningModelsCustom.getLBCobyla(model, "delta");
 		double deltaUB = LearningModelsCustom.getUBCobyla(model, "delta");
 		if (point[5] < deltaLB || point[5] > deltaUB) {
@@ -648,12 +635,6 @@ public class LearningModelsCustom {
 		return false;
 	}
 
-	/**
-	 * Convert parameter point to map
-	 * @param model
-	 * @param point
-	 * @return
-	 */
 	static Map<String, Object> oPointToMap(String model, double[] point) {
 		Map<String, Object> params = new HashMap<String, Object>();
 		
@@ -668,9 +649,7 @@ public class LearningModelsCustom {
 			params.put("probOP", point[3]);
 			params.put("eps", 	 point[4]);
 			params.put("delta",  point[5]);
-			params.put("mmGivenMM", point[6]);
-			params.put("mmGivenGB", point[7]);
-			params.put("probMixedFixed", point[8]);
+			params.put("probRA", point[6]);
 			
 		} else if (model.startsWith("s3")) {
 			
@@ -717,13 +696,7 @@ public class LearningModelsCustom {
 		if (paramName.equals("eps"))
 			return 0.5;
 
-		if (model.startsWith("s2")) {
-			
-			if (paramName.equals("delta")) {
-				return (1.5 - 0.1) * LogReader.expSet.numRounds;
-			}
-			
-		} else if (model.startsWith("s3")) {
+		if (model.startsWith("s2") || model.startsWith("s3")) {
 
 			if (paramName.equals("delta")) {
 				if (model.endsWith("abs")) {
@@ -733,8 +706,8 @@ public class LearningModelsCustom {
 				}
 			}
 
-		} else if (model.equals("s1")) {
 		}
+		
 		return Double.POSITIVE_INFINITY;
 	}
 	
@@ -748,7 +721,7 @@ public class LearningModelsCustom {
 		if (paramName.equals("eps"))
 			return 0.0;
 		
-		if (model.startsWith("s3")) {
+		if (model.startsWith("s2") || model.startsWith("s3")) {
 			
 			if (paramName.equals("delta")) {
 				if (model.endsWith("abs")) {
@@ -759,12 +732,8 @@ public class LearningModelsCustom {
 			}
 			
 		}
+		
 		return Double.NEGATIVE_INFINITY;
-	}
-
-	public static void addToParamRoundSwitched(Map<String, Object> params, String model) {
-		int roundSwitched = Integer.parseInt(model.split("-")[1]);
-		params.put("roundSwitched", roundSwitched);
 	}
 
 }
