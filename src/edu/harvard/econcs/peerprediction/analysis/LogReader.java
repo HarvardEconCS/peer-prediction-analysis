@@ -197,9 +197,11 @@ public class LogReader {
 
 		// prior probabilities
 		str = reader.readLine();
+		expSet.savePriorProbs(str.split(":")[1]);
 		
 		// worlds
 		str = reader.readLine();
+		expSet.savePriorWorlds(str.split(":")[1]);
 		
 		str = reader.readLine();
 		while (str.startsWith("Game ")) {

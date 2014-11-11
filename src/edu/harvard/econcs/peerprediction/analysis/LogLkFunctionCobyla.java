@@ -45,7 +45,7 @@ public class LogLkFunctionCobyla implements Calcfc {
 			con[8] = point[6];
 			con[9] = 1.0 - point[0] - point[1] - point[2] - point[3] - point[6];
 
-			params = LearningModelsCustom.oPointToMap(model, point);
+			params = LearningModelsCustom.pointToMap(model, point);
 			loglk = LearningModelsCustom.computeLogLk(model, params, games);
 			loglk = oAddPenaltyTerms(model, point, loglk);
 
@@ -65,7 +65,7 @@ public class LogLkFunctionCobyla implements Calcfc {
 			
 			con[8] = 1.0 - point[0] - point[1] - point[2] - point[3];
 
-			params = LearningModelsCustom.oPointToMap(model, point);
+			params = LearningModelsCustom.pointToMap(model, point);
 			loglk = LearningModelsCustom.computeLogLk(model, params, games);
 			loglk = oAddPenaltyTerms(model, point, loglk);
 			
@@ -98,7 +98,7 @@ public class LogLkFunctionCobyla implements Calcfc {
 
 			con[16] = 1.0 - point[0] - point[1] - point[2] - point[3];
 
-			params = LearningModelsCustom.oPointToMap(model, point);
+			params = LearningModelsCustom.pointToMap(model, point);
 			loglk = LearningModelsCustom.computeLogLk(model, params, games);
 			loglk = oAddPenaltyTerms(model, point, loglk);
 			
@@ -116,7 +116,7 @@ public class LogLkFunctionCobyla implements Calcfc {
 			con[5] = epsUB - point[4];
 			con[6] = 1.0 - point[0] - point[1] - point[2] - point[3];
 
-			params = LearningModelsCustom.oPointToMap(model, point);
+			params = LearningModelsCustom.pointToMap(model, point);
 			loglk = LearningModelsCustom.computeLogLk(model, params, games);
 			loglk = oAddPenaltyTerms(model, point, loglk);
 

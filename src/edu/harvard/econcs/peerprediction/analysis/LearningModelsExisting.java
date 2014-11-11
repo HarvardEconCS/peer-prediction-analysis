@@ -526,7 +526,7 @@ public class LearningModelsExisting {
 				1e-10, true, 1, 1, random, false, checker);
 	
 		// starting point
-		double[] startPoint = LearningModelsCustom.oSetRandomStartPoint(model);
+		double[] startPoint = LearningModelsCustom.getRandomPoint(model);
 	
 		double[] point = startPoint;
 		boolean shouldStop = false;
@@ -546,7 +546,7 @@ public class LearningModelsExisting {
 				e.printStackTrace();
 				System.exit(0);
 				shouldStop = false;
-				startPoint = LearningModelsCustom.oSetRandomStartPoint(model);
+				startPoint = LearningModelsCustom.getRandomPoint(model);
 				continue;
 			}
 	
@@ -558,7 +558,7 @@ public class LearningModelsExisting {
 				shouldStop = true;
 			} else {
 				function.squarePenCoeff();
-				startPoint = LearningModelsCustom.oSetRandomStartPoint(model);
+				startPoint = LearningModelsCustom.getRandomPoint(model);
 			}
 		}
 	

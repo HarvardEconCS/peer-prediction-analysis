@@ -1,7 +1,6 @@
 package edu.harvard.econcs.peerprediction.analysis;
 
 import java.io.BufferedWriter;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -68,32 +67,24 @@ public class PredLkAnalysis {
 	public static void getPredictiveLogLk(String model) throws IOException {
 	
 		// stdout to both console and file
-		Date date = new Date();
-		SimpleDateFormat ft = new SimpleDateFormat("MM.dd.HH.mm.ss");
-		FileOutputStream f = new FileOutputStream(String.format(
-				"%slog-%s-%s.txt", PredLkAnalysis.rootDir, model, ft.format(date)));
-		TeePrintStream tee = new TeePrintStream(f, System.out);
-		System.setOut(tee);
-		
+//		Date date = new Date();
+//		SimpleDateFormat ft = new SimpleDateFormat("MM.dd.HH.mm.ss");
+//		FileOutputStream f = new FileOutputStream(String.format(
+//				"%slog-%s-%s.txt", PredLkAnalysis.rootDir, model, ft.format(date)));
+//		TeePrintStream tee = new TeePrintStream(f, System.out);
+//		System.setOut(tee);
+
 		System.out.println("Get predictive likelihood for " + model);
 		int groupSize = LogReader.expSet.games.size() / PredLkAnalysis.numFolds;
-//		List<Double> loglks = new ArrayList<Double>();
 		DescriptiveStatistics stats = new DescriptiveStatistics();
 	
-//		System.out.printf("number of rounds: %d\n", numRoundsCV);
 		System.out.printf("number of folds per round: %d\n", numFolds);
-		
-//		for (int l = 0; l < PredLkAnalysis.numRoundsCV; l++) {
-	
-//		System.out.printf("Round %d: ", l);
-//		stats.clear();
 
 		Collections.shuffle(LogReader.expSet.games);
 
-//		System.out.println("Folds:");
 		for (int i = 0; i < PredLkAnalysis.numFolds; i++) {
 
-			System.out.printf("Fold %d: ", i);
+			System.out.printf("Fold %d:\n", i);
 
 			// Divide up data into test and training sets
 			List<Game> testSet = new ArrayList<Game>();
@@ -118,27 +109,19 @@ public class PredLkAnalysis {
 			stats.addValue(testLoglk);
 			System.out.println("test loglk = " + testLoglk);
 
+			printCurrentDateTime();
 		}
+		
+		// Print summary
+		System.out.println();
+		System.out.println("Summary:\n"
+				+ "Test loglks are: ");
+		for (int i = 0; i < stats.getN(); i++) {
+			System.out.println(stats.getElement(i));
+		}
+		System.out.println();
+		System.out.printf("avg test loglk = %.2f\n", stats.getMean());
 
-		System.out.printf("avg loglk = %.2f\n", stats.getMean());
-
-//		loglks.add(stats.getMean());
-//		System.out.printf(" avgloglk = %.2f", loglks.get(l));
-//		System.out.println();
-	
-//		}
-	
-//		stats.clear(); 
-//		for (int i = 0; i < loglks.size(); i++) {
-//			stats.addValue(loglks.get(i));
-//		}
-//		double mean = stats.getMean();
-//		double stdev = stats.getStandardDeviation();
-//		double stdError = stdev / Math.sqrt(PredLkAnalysis.numRoundsCV);
-//		System.out.printf("avgloglk = %.2f in [%.2f, %.2f]\n", mean,
-//				stats.getMean() - 1.96 * stdError, stats.getMean() + 1.96
-//						* stdError);
-//		avgLogLks.put(model, loglks);
 	}
 
 	static Map<String, Object> estimateParams(String model,
@@ -149,7 +132,7 @@ public class PredLkAnalysis {
 		if (model.startsWith("s2") || model.startsWith("s3") || model.equals("s1") || model.equals("s1-1")) {
 	
 			double[] point = LearningModelsCustom.estimateUsingCobyla(model, trainingSet);
-			params = LearningModelsCustom.oPointToMap(model, point);
+			params = LearningModelsCustom.pointToMap(model, point);
 	
 		} else if (model.equals("HMM")) {
 	

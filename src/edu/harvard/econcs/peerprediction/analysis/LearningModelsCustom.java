@@ -60,7 +60,7 @@ public class LearningModelsCustom {
 				int[] switchInfo = getSwitchInfoS3(game, playerId, isAbs, delta);
 				int roundSwitched = switchInfo[0];
 				int indexNewStrategy = switchInfo[1];
-				String newStrategy = strategyIndexToStringS3(indexNewStrategy);
+				String newStrategy = strategyIndexToString("s2", indexNewStrategy);
 	
 				double lkPlayer = 
 					  probTR * helperGetLkStrategy(game, playerId, 0, LogReader.expSet.numRounds, "TR", eps, null)
@@ -131,12 +131,11 @@ public class LearningModelsCustom {
 					// did not switch
 					loglk += Math.log(lkBeforeSwitch);
 				} else {
-					// likelihood after switching
 					int indexNewStrategy = switchInfo[1];
-					String newStrategy = strategyIndexToStringS3(indexNewStrategy);
-					//				System.out.println(roundSwitched + " " + newStrategy);
+					String newStrategy = strategyIndexToString("s3", indexNewStrategy);
 					double lkAfterSwitch = helperGetLkStrategy(game, playerId,
 							roundSwitched, LogReader.expSet.numRounds, newStrategy, eps, null);
+					
 					loglk += Math.log(lkBeforeSwitch) + Math.log(lkAfterSwitch); 
 				}
 				
@@ -269,7 +268,7 @@ public class LearningModelsCustom {
 			
 			// update actual and hypothetical payoffs
 			actualPayoff += reward;
-			updateHypoPayoffsS3(hypoPayoffs, playerId, signal, r, PredLkAnalysis.treatment);
+			updateHypoPayoffs(hypoPayoffs, playerId, signal, r, PredLkAnalysis.treatment);
 
 		}
 		return new int[] { round, indexStrategy };
@@ -294,7 +293,7 @@ public class LearningModelsCustom {
 	/**
 	 * 0: TR, 1: MM, 2: GB, 3: OP, 4: RA
 	 */
-	static void updateHypoPayoffsS3(List<Double> hypoPayoffs, String playerId,
+	static void updateHypoPayoffs(List<Double> hypoPayoffs, String playerId,
 			String signal, Round r, String treatment) {
 		
 		int index = 0;
@@ -329,7 +328,7 @@ public class LearningModelsCustom {
 	 * @param strategyIndex
 	 * @return
 	 */
-	static String strategyIndexToStringS3(int strategyIndex) {
+	static String strategyIndexToString(String model, int strategyIndex) {
 		String strategyName = "Unrecognized";
 		switch (strategyIndex) {
 		case 0:
@@ -346,6 +345,10 @@ public class LearningModelsCustom {
 			break;
 		case 4:
 			strategyName = "RA";
+			break;
+		case 5:
+			if (model.startsWith("s2"))
+				strategyName = "RA";
 			break;
 		}
 		return strategyName;
@@ -429,8 +432,8 @@ public class LearningModelsCustom {
 
 		// num of restarts
 		int numRestarts = 10;
-		if (model.startsWith("s3")) {
-			numRestarts = (int) Math.round(getUBCobyla(model, "delta"));
+		if (model.startsWith("s2") || model.startsWith("s3")) {
+			numRestarts = (int) Math.round(getUBCobyla(model, "delta")) ;
 		}
 		
 		int restartIndex = 0;
@@ -441,11 +444,12 @@ public class LearningModelsCustom {
 		double[] bestPoint = null;
 
 		while (!shouldStop) {
-			point = oSetRandomStartPoint(model);
+			point = getRandomPoint(model);
 			
 			// modify starting point
 			if (model.startsWith("s2") || model.startsWith("s3")) {
 				point[5] = getUBCobyla(model, "delta") / numRestarts * restartIndex;
+				System.out.printf("Starting delta = %.2f\n", point[5]);
 				
 			} else if (model.equals("s1-1")) {
 				point[4] = 0.5 / numRestarts * restartIndex;
@@ -460,9 +464,9 @@ public class LearningModelsCustom {
 				continue;
 			}
 			
-			double loglk = computeLogLk(model, oPointToMap(model, point), trainingSet);
-			Utils.printParams(oPointToMap(model, point));
+			double loglk = computeLogLk(model, pointToMap(model, point), trainingSet);
 			if (loglk > bestLogLk) {
+				Utils.printParams(pointToMap(model, point));
 				System.out.printf("loglk = %.2f, better\n", loglk);
 				bestLogLk = loglk;
 				bestPoint = point;
@@ -499,7 +503,7 @@ public class LearningModelsCustom {
 	 * @param model
 	 * @return
 	 */
-	static double[] oSetRandomStartPoint(String model) {
+	static double[] getRandomPoint(String model) {
 		
 		double[] randomVec5 = Utils.getRandomVec(5);
 
@@ -510,7 +514,7 @@ public class LearningModelsCustom {
 			double[] randomVec6 = Utils.getRandomVec(6);
 			
 			return new double[] { randomVec6[0], randomVec6[1], randomVec6[2], randomVec6[3],
-					epsStart, deltaStart, randomVec6[5] };
+					epsStart, deltaStart, randomVec6[4] };
 			
 		} else if (model.startsWith("s3")) {
 			
@@ -635,7 +639,7 @@ public class LearningModelsCustom {
 		return false;
 	}
 
-	static Map<String, Object> oPointToMap(String model, double[] point) {
+	static Map<String, Object> pointToMap(String model, double[] point) {
 		Map<String, Object> params = new HashMap<String, Object>();
 		
 		if (model.startsWith("s2")) {
@@ -686,6 +690,27 @@ public class LearningModelsCustom {
 		return params;
 	}
 
+	public static double[] mapToPoint(String model, Map<String, Object> params) {
+		double[] point = null;
+		if (model.equals("s1") || model.startsWith("s3")) {
+			point = new double[5];
+			point[0] = (double) params.get("probTR");
+			point[1] = (double) params.get("probMM");
+			point[2] = (double) params.get("probGB");
+			point[3] = (double) params.get("probOP");
+			point[4] = 1 - point[0] - point[1] - point[2] - point[3];
+		} else if (model.startsWith("s2")) {
+			point = new double[6];
+			point[0] = (double) params.get("probTR");
+			point[1] = (double) params.get("probMM");
+			point[2] = (double) params.get("probGB");
+			point[3] = (double) params.get("probOP");
+			point[4] = (double) params.get("probRA");
+			point[5] = 1 - point[0] - point[1] - point[2] - point[3] - point[4];
+		}
+		return point;
+	}
+	
 	/**
 	 * Get upper bounds
 	 * @param model
