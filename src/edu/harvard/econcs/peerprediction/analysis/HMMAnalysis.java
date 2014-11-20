@@ -570,7 +570,6 @@ public class HMMAnalysis {
 	
 		Collections.sort(seqList, new Comparator<int[]>() {
 	
-			@Override
 			public int compare(int[] o1, int[] o2) {
 				return util(o1, o2, o1.length - 1);
 			}

@@ -10,12 +10,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import net.andrewmao.models.games.BWToleranceLearner;
 import net.andrewmao.models.games.SigActObservation;
-
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-
 import be.ac.ulg.montefiore.run.jahmm.Hmm;
 
 public class PredLkAnalysis {
@@ -30,10 +28,15 @@ public class PredLkAnalysis {
 	//	 static String treatment = "prior2-constant";
 	
 	static int numFolds = 10;
-	static int numRoundsCV = 1;
 	static double randomLogLk; 
-	static Map<String, List<Double>> avgLogLks;
-
+	static Random randForShuffle = new Random();
+	static int foldIndex;
+	
+	static double trainingLoglk;
+	static double testLoglk;
+//	static int numRoundsCV = 1;
+//	static Map<String, List<Double>> avgLogLks;
+	
 	public static void main(String[] args) throws Exception {
 			
 		// set root directory for data
@@ -44,22 +47,32 @@ public class PredLkAnalysis {
 		LogReader.parseTextfile();
 		LogReader.printTreatmentInfo();
 
-		if (args.length < 2) {
-			System.err.println("Please provide a model and a treatment");
+		if (args.length < 4) {
+			System.err.println("Please provide the arguments: treatment, model, seed, foldIndex");
 			System.exit(0);
 		}
 
-		String model = args[0];
-		treatment = args[1];
-
-		avgLogLks = new HashMap<String, List<Double>>();
+		treatment = args[0];
+		String model = args[1];
+		long seed = Long.parseLong(args[2]);
+		foldIndex = Integer.parseInt(args[3]);
+		
+		randForShuffle.setSeed(seed);
+		
 		randomLogLk = getLogLkRandomModel();
 		
 		printCurrentDateTime();
 		getPredictiveLogLk(model);
 		printCurrentDateTime();
 		
-		// models: HMM, s1, s1-1, s2, s3-abs, s3-rel
+		String logDir = String.format("/global/scratch/alicegao%spplogs%s%s-%s-%d-%d.log", 
+				separator, separator, treatment, model, seed, foldIndex);
+		BufferedWriter writer = new BufferedWriter(new FileWriter(logDir, true));
+		writer.write(String.format("%d,%d,%.2f,%.2f\n", seed, foldIndex, trainingLoglk, testLoglk));
+		writer.flush();
+		writer.close();
+		
+		// models: HMM, s1, s4, s2-abs, s2-rel, s3-abs, s3-rel
 
 //		graphPredictiveLogLk();
 	}
@@ -75,53 +88,59 @@ public class PredLkAnalysis {
 //		System.setOut(tee);
 
 		System.out.println("Get predictive likelihood for " + model);
-		int groupSize = LogReader.expSet.games.size() / PredLkAnalysis.numFolds;
-		DescriptiveStatistics stats = new DescriptiveStatistics();
-	
 		System.out.printf("number of folds per round: %d\n", numFolds);
-
-		Collections.shuffle(LogReader.expSet.games);
-
-		for (int i = 0; i < PredLkAnalysis.numFolds; i++) {
-
-			System.out.printf("Fold %d:\n", i);
-
-			// Divide up data into test and training sets
-			List<Game> testSet = new ArrayList<Game>();
-			List<Game> trainingSet = new ArrayList<Game>();
-			int testStart = i * groupSize;
-			for (int j = 0; j < PredLkAnalysis.numFolds * groupSize; j++) {
-				if (j >= testStart && j < testStart + groupSize) {
-					testSet.add(LogReader.expSet.games.get(j));
-				} else {
-					trainingSet.add(LogReader.expSet.games.get(j));
-				}
-			}
-
-			// Estimate best parameters on training set
-			Map<String, Object> bestParam = estimateParams(model, trainingSet);
-			if (!model.equals("HMM"))
-				Utils.printParams(bestParam);
-
-			// Compute loglk on test set
-			double testLoglk = getTestLogLk(model, bestParam, testSet)
-					- randomLogLk;
-			stats.addValue(testLoglk);
-			System.out.println("test loglk = " + testLoglk);
-
-			printCurrentDateTime();
-		}
 		
-		// Print summary
-		System.out.println();
-		System.out.println("Summary:\n"
-				+ "Test loglks are: ");
-		for (int i = 0; i < stats.getN(); i++) {
-			System.out.println(stats.getElement(i));
-		}
-		System.out.println();
-		System.out.printf("avg test loglk = %.2f\n", stats.getMean());
+		Collections.shuffle(LogReader.expSet.games, randForShuffle);
 
+		System.out.printf("Fold %d:\n", foldIndex);
+
+		// Divide up data into test and training sets
+		List<Game> testSet = new ArrayList<Game>();
+		List<Game> trainingSet = new ArrayList<Game>();
+		int groupSize = LogReader.expSet.games.size() / PredLkAnalysis.numFolds;
+		int testStart = foldIndex * groupSize;
+		for (int j = 0; j < PredLkAnalysis.numFolds * groupSize; j++) {
+			if (j >= testStart && j < testStart + groupSize) {
+				testSet.add(LogReader.expSet.games.get(j));
+			} else {
+				trainingSet.add(LogReader.expSet.games.get(j));
+			}
+		}
+
+		// Estimate best parameters on training set
+		Map<String, Object> bestParam = estimateParams(model, trainingSet);
+		trainingLoglk = LearningModelsCustom.computeLogLk(model, bestParam, trainingSet);
+		shiftToEquivalentParams(bestParam);
+		System.out.println("Best parameters: ");
+		if (!model.equals("HMM"))
+			Utils.printParams(bestParam);
+
+		// Compute loglk on test set
+		testLoglk = getTestLogLk(model, bestParam, testSet) - randomLogLk;
+		System.out.printf("\n\n"
+				+ "Fold: %d of %d\n"
+				+ "Training loglk = %.2f\n"
+				+ "Test loglk = %.2f\n", 
+				foldIndex, numFolds, trainingLoglk, testLoglk);
+	}
+
+	private static void shiftToEquivalentParams(Map<String, Object> params) {
+		double mmGivenMMForMM = (Double) params.get("mmGivenMMForMM");
+		double mmGivenGBForMM = (Double) params.get("mmGivenGBForMM");
+		double mmGivenMMForCustom = (Double) params.get("mmGivenMM");
+		double mmGivenGBForCustom = (Double) params.get("mmGivenGB");
+		
+		if (mmGivenMMForMM < mmGivenMMForCustom || mmGivenGBForMM < mmGivenGBForCustom) {
+			// switch the two strategies and their probabilities
+			double probMixed = 1 - (Double) params.get("probGB")  - (Double) params.get("probTR") 
+					- (Double) params.get("probOP") - (Double) params.get("probMM");
+			params.put("probMM", probMixed);
+			
+			params.put("mmGivenMMForMM", mmGivenMMForCustom);
+			params.put("mmGivenGBForMM", mmGivenGBForCustom);
+			params.put("mmGivenMM", mmGivenMMForMM);
+			params.put("mmGivenGB", mmGivenGBForMM);
+		}
 	}
 
 	static Map<String, Object> estimateParams(String model,
@@ -129,7 +148,9 @@ public class PredLkAnalysis {
 	
 		Map<String, Object> params = new HashMap<String, Object>();
 	
-		if (model.startsWith("s2") || model.startsWith("s3") || model.equals("s1") || model.equals("s1-1")) {
+		if (model.startsWith("s2") || model.startsWith("s3") 
+				|| model.equals("s1") || model.equals("s4")
+				|| model.equals("s5")) {
 	
 			double[] point = LearningModelsCustom.estimateUsingCobyla(model, trainingSet);
 			params = LearningModelsCustom.pointToMap(model, point);
@@ -189,8 +210,10 @@ public class PredLkAnalysis {
 			params.put("delta", point[2]);
 			params.put("lambda", point[3]);
 			params.put("considerSignal", false);
+		} else {
+			System.err.println("Model not recognized!");
+			System.exit(0);
 		}
-	
 		return params;
 	}
 
@@ -219,7 +242,8 @@ public class PredLkAnalysis {
 			return LearningModelsExisting.computeLogLkEWA(bestParam, testSet);
 	
 		} else if (model.startsWith("s2") || model.startsWith("s3") 
-				|| model.equals("s1") || model.equals("s1-1")) {
+				|| model.equals("s1") || model.equals("s4")
+				|| model.equals("s5")) {
 			return LearningModelsCustom.computeLogLk(model, bestParam, testSet);
 	
 		}
@@ -234,58 +258,58 @@ public class PredLkAnalysis {
 		return randomLogLk;
 	}
 
-	public static void graphPredictiveLogLk() throws IOException {
-	
-		System.out.println("Graphing distributions of log likelihoods");
-		BufferedWriter writer = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
-				+ "predictiveLogLk.m"));
-	
-		int numModels = avgLogLks.keySet().size();
-		List<String> modelNames = new ArrayList<String>();
-		double[] displayMeans = new double[numModels];
-		double[] displayErrors = new double[numModels];
-		int index = 0;
-	
-		DescriptiveStatistics stats = new DescriptiveStatistics();
-	
-		modelNames.addAll(avgLogLks.keySet());
-		Collections.sort(modelNames);
-		for (int i = 0; i < modelNames.size(); i++) {
-			String model = modelNames.get(i);
-			stats.clear();
-			List<Double> list = avgLogLks.get(model);
-			for (int j = 0; j < list.size(); j++) {
-				stats.addValue(list.get(j));
-			}
-			displayMeans[index] = stats.getMean();
-			double stdev = stats.getStandardDeviation();
-			double stdError = stdev / Math.sqrt(numRoundsCV);
-			displayErrors[index] = 1.96 * stdError;
-			index++;
-		}
-	
-		StringBuilder sb = new StringBuilder();
-		sb.append(PredLkAnalysis.treatment);
-		sb.append("\n");
-		for (int i = 0; i < numModels; i++) {
-			sb.append(String.format("'%s',", modelNames.get(i)));
-		}
-		sb.append("\n");
-		sb.append(String.format("mean = ["));
-		for (int i = 0; i < numModels; i++) {
-			sb.append(String.format("%.2f ", displayMeans[i]));
-		}
-		sb.append(String.format("];\n" + "error = ["));
-		for (int i = 0; i < numModels; i++) {
-			sb.append(String.format("%.2f ", displayErrors[i]));
-		}
-		sb.append(String.format("];\n"));
-		writer.write(sb.toString());
-	
-		writer.flush();
-		writer.close();
-	
-	}
+//	public static void graphPredictiveLogLk() throws IOException {
+//	
+//		System.out.println("Graphing distributions of log likelihoods");
+//		BufferedWriter writer = new BufferedWriter(new FileWriter(PredLkAnalysis.rootDir
+//				+ "predictiveLogLk.m"));
+//	
+//		int numModels = avgLogLks.keySet().size();
+//		List<String> modelNames = new ArrayList<String>();
+//		double[] displayMeans = new double[numModels];
+//		double[] displayErrors = new double[numModels];
+//		int index = 0;
+//	
+//		DescriptiveStatistics stats = new DescriptiveStatistics();
+//	
+//		modelNames.addAll(avgLogLks.keySet());
+//		Collections.sort(modelNames);
+//		for (int i = 0; i < modelNames.size(); i++) {
+//			String model = modelNames.get(i);
+//			stats.clear();
+//			List<Double> list = avgLogLks.get(model);
+//			for (int j = 0; j < list.size(); j++) {
+//				stats.addValue(list.get(j));
+//			}
+//			displayMeans[index] = stats.getMean();
+//			double stdev = stats.getStandardDeviation();
+//			double stdError = stdev / Math.sqrt(numRoundsCV);
+//			displayErrors[index] = 1.96 * stdError;
+//			index++;
+//		}
+//	
+//		StringBuilder sb = new StringBuilder();
+//		sb.append(PredLkAnalysis.treatment);
+//		sb.append("\n");
+//		for (int i = 0; i < numModels; i++) {
+//			sb.append(String.format("'%s',", modelNames.get(i)));
+//		}
+//		sb.append("\n");
+//		sb.append(String.format("mean = ["));
+//		for (int i = 0; i < numModels; i++) {
+//			sb.append(String.format("%.2f ", displayMeans[i]));
+//		}
+//		sb.append(String.format("];\n" + "error = ["));
+//		for (int i = 0; i < numModels; i++) {
+//			sb.append(String.format("%.2f ", displayErrors[i]));
+//		}
+//		sb.append(String.format("];\n"));
+//		writer.write(sb.toString());
+//	
+//		writer.flush();
+//		writer.close();
+//	
+//	}
 
 	static void printCurrentDateTime() {
 		Date now = new Date();

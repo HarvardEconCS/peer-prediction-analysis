@@ -231,7 +231,7 @@ public class Utils {
 					(String) refInfo);
 		else if (treatment.equals("prior2-uniquetruthful")
 				|| treatment.equals("prior2-symmlowpay")) {
-			int numMMInRefReports = (int) refInfo;
+			int numMMInRefReports = (Integer) refInfo;
 			if (treatment.equals("prior2-uniquetruthful"))
 				return Utils.getPaymentTreatmentUniqueTruthful(myReport,
 						numMMInRefReports);

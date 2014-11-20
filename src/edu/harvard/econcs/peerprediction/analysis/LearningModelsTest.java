@@ -138,8 +138,8 @@ public class LearningModelsTest {
 		// compare parameters
 //		String[] paramNames = getParamNames(model);
 //		for (String name : paramNames) {
-//			assertEquals((double) expectedParams.get(name),
-//					(double) actualParams.get(name), 0.1);
+//			assertEquals((Double) expectedParams.get(name),
+//					(Double) actualParams.get(name), 0.1);
 //		}
 	}
 
@@ -171,9 +171,9 @@ public class LearningModelsTest {
 	static Game simulateS2(Map<String, Object> params) {
 		
 		String model = "s2";
-		boolean isAbs = (boolean) params.get("isAbs");
-		double eps = (double) params.get("eps");
-		double delta = (double) params.get("delta");
+		boolean isAbs = (Boolean) params.get("isAbs");
+		double eps = (Double) params.get("eps");
+		double delta = (Double) params.get("delta");
 		
 		Game game = initGame();
 		
@@ -226,9 +226,9 @@ public class LearningModelsTest {
 	static Game simulateS3(Map<String, Object> params) {
 	
 		String model = "s3";
-		boolean isAbs = (boolean) params.get("isAbs");
-		double eps = (double) params.get("eps");
-		double delta = (double) params.get("delta");
+		boolean isAbs = (Boolean) params.get("isAbs");
+		double eps = (Double) params.get("eps");
+		double delta = (Double) params.get("delta");
 
 		Game game = initGame();
 	
@@ -281,7 +281,7 @@ public class LearningModelsTest {
 	static Game simulateS1(Map<String, Object> params) {
 		
 		String model = "s1";
-		double eps = (double) params.get("eps");
+		double eps = (Double) params.get("eps");
 		
 		Game game = initGame();
 		
@@ -636,7 +636,7 @@ public class LearningModelsTest {
 			games.add(game);
 		}
 
-		boolean considerSignal = (boolean) params.get("considerSignal");
+		boolean considerSignal = (Boolean) params.get("considerSignal");
 		Map<String, Object> bounds = new HashMap<String, Object>();
 		bounds.put("lb", new double[] { 0, 1 });
 		bounds.put("ub", new double[] { 1, 10 });
@@ -650,8 +650,8 @@ public class LearningModelsTest {
 					"RLNS");
 		System.out.printf("Actual parameters: phi=%.2f lambda=%.2f, \n",
 				point[0], point[1]);
-		assertEquals((double) params.get("phi"), point[0], 0.1);
-		assertEquals((double) params.get("lambda"), point[1], 1);
+		assertEquals((Double) params.get("phi"), point[0], 0.1);
+		assertEquals((Double) params.get("lambda"), point[1], 1);
 	}
 
 	void testSFPHelper(int numGames, Map<String, Object> params) {
@@ -669,7 +669,7 @@ public class LearningModelsTest {
 			games.add(game);
 		}
 
-		boolean considerSignal = (boolean) params.get("considerSignal");
+		boolean considerSignal = (Boolean) params.get("considerSignal");
 		Map<String, Object> bounds = new HashMap<String, Object>();
 		bounds.put("lb", new double[] { 0, 1 });
 		bounds.put("ub", new double[] { 1, 10 });
@@ -683,8 +683,8 @@ public class LearningModelsTest {
 					"SFPNS");
 		System.out.printf("Actual parameters: rho=%.2f lambda=%.2f, \n",
 				point[0], point[1]);
-		assertEquals((double) params.get("rho"), point[0], 0.1);
-		assertEquals((double) params.get("lambda"), point[1], 0.5);
+		assertEquals((Double) params.get("rho"), point[0], 0.1);
+		assertEquals((Double) params.get("lambda"), point[1], 0.5);
 	}
 
 	void testEWAHelper(int numGames, Map<String, Object> params) {
@@ -706,7 +706,7 @@ public class LearningModelsTest {
 		bounds.put("lb", new double[] { 0, 0, 0, 1 });
 		bounds.put("ub", new double[] { 1, 1, 1, 10 });
 
-		boolean considerSignal = (boolean) params.get("considerSignal");
+		boolean considerSignal = (Boolean) params.get("considerSignal");
 		double[] point = null;
 		if (considerSignal)
 			point = LearningModelsExisting.estimateUsingApacheOptimizer(games,
@@ -717,10 +717,10 @@ public class LearningModelsTest {
 		System.out
 				.printf("Actual parameters: rho=%.2f, phi=%.2f, delta=%.2f, lambda=%.2f\n",
 						point[0], point[1], point[2], point[3]);
-		assertEquals((double) params.get("rho"), point[0], 0.1);
-		assertEquals((double) params.get("phi"), point[1], 0.1);
-		assertEquals((double) params.get("delta"), point[2], 0.1);
-		assertEquals((double) params.get("lambda"), point[3], 1);
+		assertEquals((Double) params.get("rho"), point[0], 0.1);
+		assertEquals((Double) params.get("phi"), point[1], 0.1);
+		assertEquals((Double) params.get("delta"), point[2], 0.1);
+		assertEquals((Double) params.get("lambda"), point[3], 1);
 	}
 
 	static List<Round> simulateRL(Map<String, Object> params) {
@@ -764,13 +764,13 @@ public class LearningModelsTest {
 							playerId).get("signal");
 					String reportPrevRound = (String) resultPrevRound.get(
 							playerId).get("report");
-					double rewardPrevRound = (double) resultPrevRound.get(
+					double rewardPrevRound = (Double) resultPrevRound.get(
 							playerId).get("reward");
 
-					boolean considerSignal = (boolean) params
+					boolean considerSignal = (Boolean) params
 							.get("considerSignal");
-					double phi = (double) params.get("phi");
-					double lambda = (double) params.get("lambda");
+					double phi = (Double) params.get("phi");
+					double lambda = (Double) params.get("lambda");
 
 					LearningModelsExisting.updateAttractionsRL(attraction,
 							playerId, phi, signalPrevRound, reportPrevRound,
@@ -845,15 +845,15 @@ public class LearningModelsTest {
 							.get("signal");
 					String reportPrev = (String) resultPrevRound.get(playerId)
 							.get("report");
-					double rewardPrev = (double) resultPrevRound.get(playerId)
+					double rewardPrev = (Double) resultPrevRound.get(playerId)
 							.get("reward");
 					int numOtherMMReportsPrev = Utils.getNumOfGivenReport(
 							resultPrevRound, "MM", playerId);
 
-					boolean considerSignal = (boolean) params
+					boolean considerSignal = (Boolean) params
 							.get("considerSignal");
-					double rho = (double) params.get("rho");
-					double lambda = (double) params.get("lambda");
+					double rho = (Double) params.get("rho");
+					double lambda = (Double) params.get("lambda");
 
 					// update attractions
 					LearningModelsExisting.updateAttractionsSFP(attractions,
@@ -936,17 +936,17 @@ public class LearningModelsTest {
 							.get("signal");
 					String reportPrev = (String) resultPrevRound.get(playerId)
 							.get("report");
-					double rewardPrev = (double) resultPrevRound.get(playerId)
+					double rewardPrev = (Double) resultPrevRound.get(playerId)
 							.get("reward");
 					int numMMPrev = Utils.getNumOfGivenReport(resultPrevRound,
 							"MM", playerId);
 
-					boolean considerSignal = (boolean) params
+					boolean considerSignal = (Boolean) params
 							.get("considerSignal");
-					double rho = (double) params.get("rho");
-					double delta = (double) params.get("delta");
-					double phi = (double) params.get("phi");
-					double lambda = (double) params.get("lambda");
+					double rho = (Double) params.get("rho");
+					double delta = (Double) params.get("delta");
+					double phi = (Double) params.get("phi");
+					double lambda = (Double) params.get("lambda");
 
 					// update attractions
 					LearningModelsExisting.updateAttractionsEWA(attractions,
